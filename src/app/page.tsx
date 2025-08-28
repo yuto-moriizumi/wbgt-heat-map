@@ -1,53 +1,34 @@
-"use client";
+import { fetchWbgtData } from "@/lib/wbgt-data";
+import WbgtMap from "@/components/WbgtMap";
 
-import { useEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
-
-export default function Home() {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
-
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          'gsi-std': {
-            type: 'raster',
-            tiles: [
-              'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'
-            ],
-            tileSize: 256,
-            attribution: '地図データ © <a href="https://www.gsi.go.jp/" target="_blank" rel="noreferrer">国土地理院</a>'
-          }
-        },
-        layers: [
-          {
-            id: 'gsi-std',
-            type: 'raster',
-            source: 'gsi-std'
-          }
-        ]
-      },
-      center: [139.7671, 35.6812], // 東京駅付近
-      zoom: 5,
-      maxZoom: 18,
-    });
-
-    return () => {
-      map.remove();
+export default async function Home() {
+  // サーバーサイドでWBGTデータを取得
+  let wbgtGeoJSON;
+  try {
+    wbgtGeoJSON = await fetchWbgtData();
+  } catch (error) {
+    console.error("Failed to fetch WBGT data:", error);
+    // エラー時は空のGeoJSONを返す
+    wbgtGeoJSON = {
+      type: "FeatureCollection" as const,
+      features: [],
     };
-  }, []);
+  }
 
   return (
     <div className="min-h-screen">
       <header className="bg-white shadow-sm border-b p-4">
         <h1 className="text-2xl font-bold text-gray-800">WBGT Heat Map</h1>
         <p className="text-gray-600">全国暑さ指数（WBGT）マップ</p>
+        {wbgtGeoJSON.features.length > 0 && (
+          <p className="text-sm text-gray-500 mt-1">
+            表示地点数: {wbgtGeoJSON.features.length}地点
+          </p>
+        )}
       </header>
-      <div ref={mapContainerRef} className="w-full h-[calc(100vh-80px)]" />
+      <div className="h-[calc(100vh-80px)]">
+        <WbgtMap wbgtData={wbgtGeoJSON} />
+      </div>
     </div>
   );
 }
