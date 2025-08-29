@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
-import { WBGTGeoJSON, getWBGTColor, getWBGTLevel } from "@/lib/wbgt-data";
+import { WbgtGeoJSON, getWBGTColor, getWBGTLevel } from "@/lib/wbgt-data";
 
 interface MapDisplayProps {
-  wbgtData: WBGTGeoJSON;
+  wbgtData: WbgtGeoJSON;
 }
 
 export default function MapDisplay({ wbgtData }: MapDisplayProps) {
@@ -110,17 +110,19 @@ export default function MapDisplay({ wbgtData }: MapDisplayProps) {
 
             const popupContent = `
               <div class="p-3">
-                <h3 class="font-bold text-lg mb-2">${props.name}</h3>
-                <p class="text-sm text-gray-600 mb-2">${props.prefecture}</p>
+                <h3 class="font-bold text-lg mb-2 text-black">${props.name}</h3>
+                <p class="text-sm text-black mb-2">${props.prefecture}</p>
                 ${
                   wbgt !== null
                     ? `
                   <div class="mb-2">
-                    <span class="font-semibold">WBGT:</span> 
+                    <span class="font-semibold text-black">WBGT:</span> 
                     <span class="font-bold" style="color: ${getWBGTColor(
                       wbgt
-                    )}">${wbgt}°C</span>
-                    <span class="text-sm ml-1">(${getWBGTLevel(wbgt)})</span>
+                    )}">${wbgt}</span>
+                    <span class="text-sm ml-1 text-black">(${getWBGTLevel(
+                      wbgt
+                    )})</span>
                   </div>
                 `
                     : ""
@@ -129,7 +131,7 @@ export default function MapDisplay({ wbgtData }: MapDisplayProps) {
                   temperature !== null
                     ? `
                   <div class="mb-1">
-                    <span class="font-semibold">気温:</span> ${temperature}°C
+                    <span class="font-semibold text-black">気温:</span> <span class="text-black">${temperature}°C</span>
                   </div>
                 `
                     : ""
@@ -138,12 +140,12 @@ export default function MapDisplay({ wbgtData }: MapDisplayProps) {
                   humidity !== null
                     ? `
                   <div class="mb-1">
-                    <span class="font-semibold">湿度:</span> ${humidity}%
+                    <span class="font-semibold text-black">湿度:</span> <span class="text-black">${humidity}%</span>
                   </div>
                 `
                     : ""
                 }
-                <div class="text-xs text-gray-500 mt-2">
+                <div class="text-xs text-gray-700 mt-2">
                   観測時刻: ${props.time}
                 </div>
               </div>

@@ -17,16 +17,18 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-white shadow-sm border-b p-4">
-        <h1 className="text-2xl font-bold text-gray-800">WBGT Heat Map</h1>
-        <p className="text-gray-600">全国暑さ指数（WBGT）マップ</p>
-        {wbgtGeoJSON.features.length > 0 && (
-          <p className="text-sm text-gray-500 mt-1">
-            表示地点数: {wbgtGeoJSON.features.length}地点
-          </p>
-        )}
+      <header className="bg-white shadow-sm border-b px-4 py-1">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-bold text-black">WBGT Heat Map</h1>
+          <p className="text-black text-sm">全国暑さ指数（WBGT）マップ</p>
+          {wbgtGeoJSON.features.length > 0 && (
+            <p className="text-xs text-gray-700">
+              表示地点数: {wbgtGeoJSON.features.length}地点
+            </p>
+          )}
+        </div>
       </header>
-      <div className="h-[calc(100vh-80px)]">
+      <div className="h-[calc(100vh-45px)]">
         <WbgtMap wbgtData={wbgtGeoJSON} />
       </div>
     </div>

@@ -86,14 +86,14 @@ export default function WbgtMap({ wbgtData }: WbgtMapProps) {
             .setHTML(
               `
               <div class="p-3">
-                <h3 class="font-bold text-lg">${name}</h3>
+                <h3 class="font-bold text-lg text-black">${name}</h3>
                 <p class="text-2xl font-bold" style="color: ${
                   feature.properties!.riskColor
                 }">
-                  ${wbgt}°C
+                  ${wbgt}
                 </p>
-                <p class="text-sm text-gray-600">${riskLevel}</p>
-                <p class="text-xs text-gray-500 mt-1">地点ID: ${id}</p>
+                <p class="text-sm text-black font-medium">${riskLevel}</p>
+                <p class="text-xs text-gray-700 mt-1">地点ID: ${id}</p>
               </div>
             `
             )
@@ -121,57 +121,57 @@ export default function WbgtMap({ wbgtData }: WbgtMapProps) {
       <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* 凡例 */}
-      <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-lg">
-        <h4 className="font-bold text-sm mb-2">暑さ指数(WBGT)</h4>
+      <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">
+        <h4 className="font-bold text-sm mb-2 text-black">暑さ指数(WBGT)</h4>
         <div className="space-y-1 text-xs">
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#800080" }}
             ></div>
-            <span>災害級の危険(35~)</span>
+            <span className="text-black font-medium">災害級の危険(35~)</span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#FF0000" }}
             ></div>
-            <span>極めて危険(33~)</span>
+            <span className="text-black font-medium">極めて危険(33~)</span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#FF4500" }}
             ></div>
-            <span>危険(31~)</span>
+            <span className="text-black font-medium">危険(31~)</span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#FFA500" }}
             ></div>
-            <span>厳重警戒(28~)</span>
+            <span className="text-black font-medium">厳重警戒(28~)</span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#FFFF00" }}
             ></div>
-            <span>警戒(25~)</span>
+            <span className="text-black font-medium">警戒(25~)</span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#00FFFF" }}
             ></div>
-            <span>注意(21~)</span>
+            <span className="text-black font-medium">注意(21~)</span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#0000FF" }}
             ></div>
-            <span>ほぼ安全(~21)</span>
+            <span className="text-black font-medium">ほぼ安全(~21)</span>
           </div>
         </div>
       </div>
