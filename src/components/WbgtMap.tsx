@@ -1,7 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import maplibregl from "maplibre-gl";
+import TimeSlider from "./TimeSlider";
+
+interface TimeSeriesData {
+  time: string;
+  wbgt: number;
+  riskLevel: string;
+  riskColor: string;
+}
 
 interface WbgtMapProps {
   wbgtData: GeoJSON.FeatureCollection;
@@ -23,6 +31,68 @@ interface WbgtMapProps {
 export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // 全ての時系列データから時刻一覧を取得
+  const timePoints = useMemo(() => {
+    const timeSet = new Set<string>();
+
+    wbgtData.features.forEach((feature) => {
+      const timeSeriesData = feature.properties?.timeSeriesData as
+        | TimeSeriesData[]
+        | undefined;
+      if (timeSeriesData) {
+        timeSeriesData.forEach((data) => timeSet.add(data.time));
+      }
+    });
+
+    return Array.from(timeSet).sort();
+  }, [wbgtData]);
+
+  // 指定した時刻でのGeoJSONデータを生成
+  const getGeoJSONForTime = useCallback(
+    (timeIndex: number): GeoJSON.FeatureCollection => {
+      if (timePoints.length === 0) return wbgtData;
+
+      const targetTime = timePoints[timeIndex];
+
+      const features = wbgtData.features
+        .map((feature) => {
+          const timeSeriesData = feature.properties?.timeSeriesData as
+            | TimeSeriesData[]
+            | undefined;
+
+          if (timeSeriesData) {
+            const dataForTime = timeSeriesData.find(
+              (data) => data.time === targetTime
+            );
+            if (dataForTime) {
+              return {
+                ...feature,
+                properties: {
+                  ...feature.properties,
+                  wbgt: dataForTime.wbgt,
+                  riskLevel: dataForTime.riskLevel,
+                  riskColor: dataForTime.riskColor,
+                  time: dataForTime.time,
+                },
+              };
+            }
+          }
+
+          // 時系列データがない場合は元のデータを使用
+          return feature;
+        })
+        .filter((feature) => feature !== null);
+
+      return {
+        type: "FeatureCollection",
+        features,
+      };
+    },
+    [wbgtData, timePoints]
+  );
 
   // WBGTの値から翻訳されたリスクレベルを取得する関数
   const getTranslatedRiskLevel = useCallback(
@@ -38,8 +108,34 @@ export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
     [translations]
   );
 
+  // 時刻変更のハンドラー
+  const handleTimeChange = useCallback(
+    (timeIndex: number) => {
+      setCurrentTimeIndex(timeIndex);
+
+      if (mapRef.current) {
+        const currentGeoJSON = getGeoJSONForTime(timeIndex);
+        const source = mapRef.current.getSource(
+          "wbgt-points"
+        ) as maplibregl.GeoJSONSource;
+        if (source) {
+          source.setData(currentGeoJSON);
+        }
+      }
+    },
+    [getGeoJSONForTime]
+  );
+
+  // 再生/一時停止のハンドラー
+  const handlePlayToggle = useCallback(() => {
+    setIsPlaying((prev) => !prev);
+  }, []);
+
   useEffect(() => {
     if (!mapContainerRef.current) return;
+
+    // 初期表示用のGeoJSONデータ
+    const initialGeoJSON = getGeoJSONForTime(currentTimeIndex);
 
     // 地図を初期化
     const map = new maplibregl.Map({
@@ -75,7 +171,7 @@ export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
       // WBGTデータソースを追加
       map.addSource("wbgt-points", {
         type: "geojson",
-        data: wbgtData,
+        data: initialGeoJSON,
       });
 
       // WBGT観測点を円で表示
@@ -106,7 +202,7 @@ export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
       map.on("click", "wbgt-circles", (e) => {
         if (e.features && e.features.length > 0) {
           const feature = e.features[0];
-          const { name, wbgt, id } = feature.properties!;
+          const { name, wbgt, id, time } = feature.properties!;
           const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
 
           new maplibregl.Popup()
@@ -121,6 +217,11 @@ export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
                   ${wbgt}
                 </p>
                 <p class="text-sm text-black font-medium">${translatedRiskLevel}</p>
+                ${
+                  time
+                    ? `<p class="text-xs text-gray-600 mt-1">時刻: ${time}</p>`
+                    : ""
+                }
                 <p class="text-xs text-gray-700 mt-1">${
                   translations.stationName
                 }: ${id}</p>
@@ -144,11 +245,30 @@ export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
     return () => {
       map.remove();
     };
-  }, [wbgtData, translations, getTranslatedRiskLevel]);
+  }, [
+    getGeoJSONForTime,
+    currentTimeIndex,
+    translations,
+    getTranslatedRiskLevel,
+  ]);
 
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainerRef} className="w-full h-full" />
+
+      {/* 時系列スライダー */}
+      {timePoints.length > 1 && (
+        <div className="absolute top-4 left-4">
+          <TimeSlider
+            timePoints={timePoints}
+            currentTimeIndex={currentTimeIndex}
+            onTimeChange={handleTimeChange}
+            isPlaying={isPlaying}
+            onPlayToggle={handlePlayToggle}
+            playbackSpeed={2000}
+          />
+        </div>
+      )}
 
       {/* 凡例 */}
       <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">

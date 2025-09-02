@@ -12,6 +12,13 @@ export interface WbgtData {
   riskColor: string;
 }
 
+export interface TimeSeriesData {
+  time: string;
+  wbgt: number;
+  riskLevel: string;
+  riskColor: string;
+}
+
 export interface WbgtGeoJSON {
   type: "FeatureCollection";
   features: Array<{
@@ -23,6 +30,7 @@ export interface WbgtGeoJSON {
       riskLevel: string;
       riskColor: string;
       time?: string;
+      timeSeriesData?: TimeSeriesData[];
     };
     geometry: {
       type: "Point";
@@ -142,9 +150,7 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
     console.log(`使用データソース: ${usedUrl}`);
 
     // データの年月を推定
-    let dataDate = currentYearMonth;
     if (usedUrl.includes("201907")) {
-      dataDate = "201907";
       console.log("注意: サンプルデータ（2019年7月）を使用しています");
     }
 
@@ -188,27 +194,45 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
         continue;
       }
 
-      // 最新のWBGTデータを取得（最後の行から最新データを探す）
+      // 時系列データを収集
+      const timeSeriesData: TimeSeriesData[] = [];
       let latestWbgt = null;
-      for (let rowIndex = records.length - 1; rowIndex > 0; rowIndex--) {
+
+      // 各時刻のデータを処理（ヘッダー行をスキップ）
+      for (let rowIndex = 1; rowIndex < records.length; rowIndex++) {
         const row = records[rowIndex];
         if (!row || row.length <= stationIndex + 2) continue;
 
+        const date = row[0];
+        const time = row[1];
         const value = row[stationIndex + 2]; // Date, Timeの後の列
+
         if (value && value !== "" && !isNaN(Number(value))) {
-          latestWbgt = Number(value);
-          break;
+          let wbgt = Number(value);
+
+          // WBGTが10倍されている場合の調整
+          if (wbgt > 100) {
+            wbgt = wbgt / 10;
+          }
+
+          const { level, color } = getRiskLevel(wbgt);
+          const timeString = `${date} ${time}`;
+
+          timeSeriesData.push({
+            time: timeString,
+            wbgt: wbgt,
+            riskLevel: level,
+            riskColor: color,
+          });
+
+          // 最新のデータとして保存
+          latestWbgt = wbgt;
         }
       }
 
-      if (latestWbgt === null) {
+      if (latestWbgt === null || timeSeriesData.length === 0) {
         console.log(`地点ID ${stationId} にWBGTデータがありません`);
         continue;
-      }
-
-      // WBGTが10倍されている場合の調整
-      if (latestWbgt > 100) {
-        latestWbgt = latestWbgt / 10;
       }
 
       const { level, color } = getRiskLevel(latestWbgt);
@@ -221,6 +245,7 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
           wbgt: latestWbgt,
           riskLevel: level,
           riskColor: color,
+          timeSeriesData: timeSeriesData,
         },
         geometry: {
           type: "Point" as const,
