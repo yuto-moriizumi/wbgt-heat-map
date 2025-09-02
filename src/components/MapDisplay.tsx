@@ -17,10 +17,12 @@ export default function MapDisplay({ wbgtData }: MapDisplayProps) {
   // 利用可能な時刻リストを取得
   useEffect(() => {
     const times = Array.from(
-      new Set(wbgtData.features.map((feature) => feature.properties.time))
-    )
-      .filter((time) => time)
-      .sort();
+      new Set(
+        wbgtData.features
+          .map((feature) => feature.properties.time)
+          .filter((time): time is string => time !== undefined)
+      )
+    ).sort();
 
     setAvailableTimes(times);
     if (times.length > 0) {

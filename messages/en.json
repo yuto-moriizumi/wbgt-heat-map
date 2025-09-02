@@ -1,0 +1,19 @@
+{
+  "HomePage": {
+    "title": "WBGT Heat Map",
+    "description": "Nationwide Wet Bulb Globe Temperature (WBGT) Heat Map for Japan"
+  },
+  "WbgtMap": {
+    "stationName": "Station Name",
+    "wbgt": "WBGT",
+    "riskLevel": "Risk Level",
+    "legendTitle": "WBGT",
+    "disaster": "Disaster level danger (35+)",
+    "extreme": "Extreme danger (33+)",
+    "danger": "Danger (31+)",
+    "caution": "Caution (28+)",
+    "warning": "Warning (25+)",
+    "attention": "Attention (21+)",
+    "safe": "Almost safe (<21)"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "HomePage": {
+    "title": "全国暑さ指数(WBGT)マップ",
+    "description": "全国の暑さ指数（WBGT）の実況と予測を地図上で確認できます。"
+  },
+  "WbgtMap": {
+    "stationName": "観測地点名",
+    "wbgt": "暑さ指数 (WBGT)",
+    "riskLevel": "危険度",
+    "legendTitle": "暑さ指数(WBGT)",
+    "disaster": "災害級の危険(35~)",
+    "extreme": "極めて危険(33~)",
+    "danger": "危険(31~)",
+    "caution": "厳重警戒(28~)",
+    "warning": "警戒(25~)",
+    "attention": "注意(21~)",
+    "safe": "ほぼ安全(~21)"
+  }
+}

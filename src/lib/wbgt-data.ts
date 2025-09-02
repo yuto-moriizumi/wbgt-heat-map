@@ -22,6 +22,7 @@ export interface WbgtGeoJSON {
       wbgt: number;
       riskLevel: string;
       riskColor: string;
+      time?: string;
     };
     geometry: {
       type: "Point";

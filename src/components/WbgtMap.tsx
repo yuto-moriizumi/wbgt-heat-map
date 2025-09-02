@@ -1,15 +1,42 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 
 interface WbgtMapProps {
   wbgtData: GeoJSON.FeatureCollection;
+  translations: {
+    stationName: string;
+    wbgt: string;
+    riskLevel: string;
+    legendTitle: string;
+    disaster: string;
+    extreme: string;
+    danger: string;
+    caution: string;
+    warning: string;
+    attention: string;
+    safe: string;
+  };
 }
 
-export default function WbgtMap({ wbgtData }: WbgtMapProps) {
+export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+
+  // WBGTの値から翻訳されたリスクレベルを取得する関数
+  const getTranslatedRiskLevel = useCallback(
+    (wbgt: number): string => {
+      if (wbgt >= 35) return translations.disaster;
+      if (wbgt >= 33) return translations.extreme;
+      if (wbgt >= 31) return translations.danger;
+      if (wbgt >= 28) return translations.caution;
+      if (wbgt >= 25) return translations.warning;
+      if (wbgt >= 21) return translations.attention;
+      return translations.safe;
+    },
+    [translations]
+  );
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -79,7 +106,8 @@ export default function WbgtMap({ wbgtData }: WbgtMapProps) {
       map.on("click", "wbgt-circles", (e) => {
         if (e.features && e.features.length > 0) {
           const feature = e.features[0];
-          const { name, wbgt, riskLevel, id } = feature.properties!;
+          const { name, wbgt, id } = feature.properties!;
+          const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
 
           new maplibregl.Popup()
             .setLngLat(e.lngLat)
@@ -92,8 +120,10 @@ export default function WbgtMap({ wbgtData }: WbgtMapProps) {
                 }">
                   ${wbgt}
                 </p>
-                <p class="text-sm text-black font-medium">${riskLevel}</p>
-                <p class="text-xs text-gray-700 mt-1">地点ID: ${id}</p>
+                <p class="text-sm text-black font-medium">${translatedRiskLevel}</p>
+                <p class="text-xs text-gray-700 mt-1">${
+                  translations.stationName
+                }: ${id}</p>
               </div>
             `
             )
@@ -114,7 +144,7 @@ export default function WbgtMap({ wbgtData }: WbgtMapProps) {
     return () => {
       map.remove();
     };
-  }, [wbgtData]);
+  }, [wbgtData, translations, getTranslatedRiskLevel]);
 
   return (
     <div className="relative w-full h-full">
@@ -122,56 +152,70 @@ export default function WbgtMap({ wbgtData }: WbgtMapProps) {
 
       {/* 凡例 */}
       <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">
-        <h4 className="font-bold text-sm mb-2 text-black">暑さ指数(WBGT)</h4>
+        <h4 className="font-bold text-sm mb-2 text-black">
+          {translations.legendTitle}
+        </h4>
         <div className="space-y-1 text-xs">
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#800080" }}
             ></div>
-            <span className="text-black font-medium">災害級の危険(35~)</span>
+            <span className="text-black font-medium">
+              {translations.disaster}
+            </span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#FF0000" }}
             ></div>
-            <span className="text-black font-medium">極めて危険(33~)</span>
+            <span className="text-black font-medium">
+              {translations.extreme}
+            </span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#FF4500" }}
             ></div>
-            <span className="text-black font-medium">危険(31~)</span>
+            <span className="text-black font-medium">
+              {translations.danger}
+            </span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#FFA500" }}
             ></div>
-            <span className="text-black font-medium">厳重警戒(28~)</span>
+            <span className="text-black font-medium">
+              {translations.caution}
+            </span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#FFFF00" }}
             ></div>
-            <span className="text-black font-medium">警戒(25~)</span>
+            <span className="text-black font-medium">
+              {translations.warning}
+            </span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#00FFFF" }}
             ></div>
-            <span className="text-black font-medium">注意(21~)</span>
+            <span className="text-black font-medium">
+              {translations.attention}
+            </span>
           </div>
           <div className="flex items-center">
             <div
               className="w-4 h-4 rounded-full mr-2"
               style={{ backgroundColor: "#0000FF" }}
             ></div>
-            <span className="text-black font-medium">ほぼ安全(~21)</span>
+            <span className="text-black font-medium">{translations.safe}</span>
           </div>
         </div>
       </div>
