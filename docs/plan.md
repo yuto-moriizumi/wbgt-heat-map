@@ -2,6 +2,11 @@
 
 基本的には、東京暑さ MAP (https://micos-sc.jwa.or.jp/tokyo-wbgt/) の全国版を作る。UI や表示方法が最も優れている。
 
+まずは環境省のデータを利用する形で作成する
+電子情報提供サービスの説明： https://www.wbgt.env.go.jp/data_service.php
+
+# TODO
+
 - [x] 極めて危険（33 以上）と色による表示に対応する
 - [x] 災害級の危険（35 以上）と色による表示に対応する
 - [x] それなりにズームできること
@@ -17,6 +22,3 @@
 - [ ] SEO 対策とアクセス解析
   - [ ] TwitterOGP、シェアボタンなど
 - [ ] i18n
-
-まずは環境省のデータを利用する形で作成する
-電子情報提供サービスの説明： https://www.wbgt.env.go.jp/data_service.php
