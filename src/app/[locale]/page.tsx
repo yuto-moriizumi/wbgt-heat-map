@@ -38,6 +38,17 @@ export default async function Home({
     safe: tMap("safe"),
   };
 
+  // 凡例の項目を定義
+  const legendItems = [
+    { color: "#800080", label: mapTranslations.disaster },
+    { color: "#FF0000", label: mapTranslations.extreme },
+    { color: "#FF4500", label: mapTranslations.danger },
+    { color: "#FFA500", label: mapTranslations.caution },
+    { color: "#FFFF00", label: mapTranslations.warning },
+    { color: "#00FFFF", label: mapTranslations.attention },
+    { color: "#0000FF", label: mapTranslations.safe },
+  ];
+
   return (
     <div className="min-h-screen">
       <header className="bg-white shadow-sm border-b px-4 py-1">
@@ -51,8 +62,26 @@ export default async function Home({
           )}
         </div>
       </header>
-      <div className="h-[calc(100vh-45px)]">
+      <div className="h-[calc(100vh-45px)] relative">
         <WbgtMap wbgtData={wbgtGeoJSON} translations={mapTranslations} />
+
+        {/* 凡例 */}
+        <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">
+          <h4 className="font-bold text-sm mb-2 text-black">
+            {mapTranslations.legendTitle}
+          </h4>
+          <div className="space-y-1 text-xs">
+            {legendItems.map((item, index) => (
+              <div key={index} className="flex items-center">
+                <div
+                  className="w-4 h-4 rounded-full mr-2"
+                  style={{ backgroundColor: item.color }}
+                ></div>
+                <span className="text-black font-medium">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

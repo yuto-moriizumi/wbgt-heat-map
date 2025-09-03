@@ -53,4 +53,5 @@ The project follows a standard Next.js App Router structure.
 
 - This `copilot-instructions.md` file should be kept up-to-date as the project evolves.
 - The `docs/plan.md` file contains the project's TODO list. Refer to it to understand the next development steps, and update it after planning and completing each task.
-- Before finishing a task, start the development server and use the simpleBrowser to open the application and verify that the page title is visible on the screen.
+- Before finishing a task, start the development server and use Playwright MCP tools to open the application and verify that the page title is visible on the screen. Once you confirm "WBGT" is shown in <h1> element, you can consider the task as completed.
+- If you're Grok Code Fast 1 or Sonnic, don't take screenshot.

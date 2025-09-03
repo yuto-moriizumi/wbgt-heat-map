@@ -4,16 +4,27 @@ import { useEffect, useCallback } from "react";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 
 interface TimeSliderProps {
+  /** 時間ポイントの配列 */
   timePoints: string[];
+  /** 現在の時間インデックス */
   currentTimeIndex: number;
+  /** 時間変更時のコールバック関数 */
   onTimeChange: (index: number) => void;
+  /** 再生中かどうか */
   isPlaying: boolean;
+  /** 再生/停止トグルのコールバック関数 */
   onPlayToggle: () => void;
-  playbackSpeed?: number; // milliseconds between frames
+  /** 再生速度（ミリ秒単位、オプション） */
+  playbackSpeed?: number;
+  /** 翻訳オブジェクト（オプション） */
   translations?: {
+    /** 再生ボタンのテキスト */
     play?: string;
+    /** 停止ボタンのテキスト */
     pause?: string;
+    /** 前へボタンのテキスト */
     previous?: string;
+    /** 次へボタンのテキスト */
     next?: string;
   };
 }
