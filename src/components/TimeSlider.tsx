@@ -74,16 +74,122 @@ export default function TimeSlider({
 
   const formatTime = (timeString: string): string => {
     try {
-      // "YYYYMMDD HHMM" または "YYYY/MM/DD HH:MM" 形式を想定
+      // "YYYY/MM/DD HH:MM" 形式を想定、UTCからJSTに変換
       if (timeString.includes(" ")) {
         const [datePart, timePart] = timeString.split(" ");
-        if (datePart.length === 8) {
+        if (datePart.includes("/")) {
+          // YYYY/MM/DD形式
+          const dateParts = datePart.split("/");
+          if (dateParts.length === 3) {
+            let year = parseInt(dateParts[0]);
+            let month = parseInt(dateParts[1]);
+            let day = parseInt(dateParts[2]);
+            if (timePart.includes(":")) {
+              // HH:MM形式
+              const timeParts = timePart.split(":");
+              if (timeParts.length === 2) {
+                let hour = parseInt(timeParts[0]);
+                const minute = timeParts[1];
+                // UTCからJSTに変換 (UTC+9)
+                hour += 9;
+                if (hour >= 24) {
+                  hour -= 24;
+                  day += 1;
+                  // 日付の繰り上げを考慮
+                  const daysInMonth = new Date(year, month, 0).getDate();
+                  if (day > daysInMonth) {
+                    day = 1;
+                    month += 1;
+                    if (month > 12) {
+                      month = 1;
+                      year += 1;
+                    }
+                  }
+                }
+                return `${month}/${day} ${hour
+                  .toString()
+                  .padStart(2, "0")}:${minute}`;
+              }
+            } else {
+              // HHMM形式
+              let hour = parseInt(timePart.slice(0, 2));
+              const minute = timePart.slice(2, 4);
+              // UTCからJSTに変換 (UTC+9)
+              hour += 9;
+              if (hour >= 24) {
+                hour -= 24;
+                day += 1;
+                // 日付の繰り上げを考慮
+                const daysInMonth = new Date(year, month, 0).getDate();
+                if (day > daysInMonth) {
+                  day = 1;
+                  month += 1;
+                  if (month > 12) {
+                    month = 1;
+                    year += 1;
+                  }
+                }
+              }
+              return `${month}/${day} ${hour
+                .toString()
+                .padStart(2, "0")}:${minute}`;
+            }
+          }
+        } else if (datePart.length === 8) {
           // YYYYMMDD形式
-          const month = datePart.slice(4, 6);
-          const day = datePart.slice(6, 8);
-          const hour = timePart.slice(0, 2);
-          const minute = timePart.slice(2, 4);
-          return `${month}/${day} ${hour}:${minute}`;
+          let year = parseInt(datePart.slice(0, 4));
+          let month = parseInt(datePart.slice(4, 6));
+          let day = parseInt(datePart.slice(6, 8));
+          if (timePart.includes(":")) {
+            // HH:MM形式
+            const timeParts = timePart.split(":");
+            if (timeParts.length === 2) {
+              let hour = parseInt(timeParts[0]);
+              const minute = timeParts[1];
+              // UTCからJSTに変換 (UTC+9)
+              hour += 9;
+              if (hour >= 24) {
+                hour -= 24;
+                day += 1;
+                // 日付の繰り上げを考慮
+                const daysInMonth = new Date(year, month, 0).getDate();
+                if (day > daysInMonth) {
+                  day = 1;
+                  month += 1;
+                  if (month > 12) {
+                    month = 1;
+                    year += 1;
+                  }
+                }
+              }
+              return `${month}/${day} ${hour
+                .toString()
+                .padStart(2, "0")}:${minute}`;
+            }
+          } else {
+            // HHMM形式
+            let hour = parseInt(timePart.slice(0, 2));
+            const minute = timePart.slice(2, 4);
+            // UTCからJSTに変換 (UTC+9)
+            hour += 9;
+            if (hour >= 24) {
+              hour -= 24;
+              day += 1;
+              // 日付の繰り上げを考慮
+              const daysInMonth = new Date(year, month, 0).getDate();
+              if (day > daysInMonth) {
+                day = 1;
+                month += 1;
+                if (month > 12) {
+                  month = 1;
+                  year += 1;
+                }
+              }
+            }
+            return `${month}/${day} ${hour
+              .toString()
+              .padStart(2, "0")}:${minute}`;
+          }
         }
       }
       return timeString;
