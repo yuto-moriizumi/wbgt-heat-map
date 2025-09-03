@@ -8,8 +8,21 @@ import {
   Popup,
   MapMouseEvent,
   MapRef,
+  LayerProps,
 } from "react-map-gl/maplibre";
 import TimeSlider from "./TimeSlider";
+
+const wbgtLayer: LayerProps = {
+  id: "wbgt-circles",
+  type: "circle",
+  paint: {
+    "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 10, 8, 15, 12],
+    "circle-color": ["get", "riskColor"],
+    "circle-stroke-width": 2,
+    "circle-stroke-color": "#ffffff",
+    "circle-opacity": 0.8,
+  },
+};
 
 interface TimeSeriesData {
   time: string;
@@ -219,27 +232,7 @@ export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
         interactiveLayerIds={["wbgt-circles"]}
       >
         <Source id="wbgt-points" type="geojson" data={currentGeoJSON}>
-          <Layer
-            id="wbgt-circles"
-            type="circle"
-            paint={{
-              "circle-radius": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                5,
-                4,
-                10,
-                8,
-                15,
-                12,
-              ],
-              "circle-color": ["get", "riskColor"],
-              "circle-stroke-width": 2,
-              "circle-stroke-color": "#ffffff",
-              "circle-opacity": 0.8,
-            }}
-          />
+          <Layer {...wbgtLayer} />
         </Source>
 
         {popupInfo && (
