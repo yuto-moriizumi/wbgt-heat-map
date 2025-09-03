@@ -239,6 +239,7 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
 
       features.push({
         type: "Feature" as const,
+        id: stationId, // トップレベルのidを追加
         properties: {
           id: stationId,
           name: station.name,
