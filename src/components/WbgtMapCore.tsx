@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import {
   Map as MapGL,
   Source,
@@ -18,9 +18,7 @@ const baseMapStyle = {
   sources: {
     "gsi-std": {
       type: "raster" as const,
-      tiles: [
-        "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
-      ],
+      tiles: ["https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png"],
       tileSize: 256,
       attribution:
         '地図データ © <a href="https://www.gsi.go.jp/" target="_blank" rel="noreferrer">国土地理院</a>',
@@ -44,7 +42,7 @@ const wbgtLayer: LayerProps = {
       "coalesce",
       ["feature-state", "riskColor"],
       ["get", "riskColor"],
-      "#cccccc" // デフォルト色
+      "#cccccc", // デフォルト色
     ],
     "circle-stroke-width": 2,
     "circle-stroke-color": "#ffffff",
@@ -55,6 +53,7 @@ const wbgtLayer: LayerProps = {
 interface WbgtMapCoreProps {
   wbgtData: GeoJSON.FeatureCollection;
   currentTimeIndex: number;
+  timePoints: string[];
   translations: {
     stationName: string;
     wbgt: string;
@@ -72,6 +71,7 @@ interface WbgtMapCoreProps {
 export default function WbgtMapCore({
   wbgtData,
   currentTimeIndex,
+  timePoints,
   translations,
 }: WbgtMapCoreProps) {
   const [popupInfo, setPopupInfo] = useState<{
@@ -133,28 +133,12 @@ export default function WbgtMapCore({
     [getTranslatedRiskLevel]
   );
 
-  // 全ての時系列データから時刻一覧を取得
-  const timePoints = useMemo(() => {
-    const timeSet = new Set<string>();
-
-    wbgtData.features.forEach((feature) => {
-      const timeSeriesData = feature.properties?.timeSeriesData as
-        | { time: string; wbgt: number; riskLevel: string; riskColor: string }[]
-        | undefined;
-      if (timeSeriesData) {
-        timeSeriesData.forEach((data) => timeSet.add(data.time));
-      }
-    });
-
-    return Array.from(timeSet).sort();
-  }, [wbgtData]);
-
-  // 静的なGeoJSONデータ（全時刻のデータを保持）
-  const staticGeoJSON = useMemo(() => wbgtData, [wbgtData]);
-
   // ルックアップマップ: stationId -> timeSeriesData[]
-  const timeSeriesLookup = useMemo(() => {
-    const lookup = new Map<string, { time: string; wbgt: number; riskLevel: string; riskColor: string }[]>();
+  const timeSeriesLookup = (() => {
+    const lookup = new Map<
+      string,
+      { time: string; wbgt: number; riskLevel: string; riskColor: string }[]
+    >();
     wbgtData.features.forEach((feature) => {
       const id = feature.properties?.id;
       const timeSeriesData = feature.properties?.timeSeriesData as
@@ -165,30 +149,38 @@ export default function WbgtMapCore({
       }
     });
     return lookup;
-  }, [wbgtData]);
-
-
+  })();
 
   // feature-stateを適用する関数
   const applyFeatureState = useCallback((map: MapLibreMap, time: string) => {
-    timeSeriesLookup.forEach((timeSeriesData: { time: string; wbgt: number; riskLevel: string; riskColor: string }[], stationId: string) => {
-      const dataForTime = timeSeriesData.find((data) => data.time === time);
-      if (dataForTime) {
-        map.setFeatureState(
-          {
-            source: "wbgt-points",
-            id: stationId,
-          },
-          {
-            riskColor: dataForTime.riskColor,
-            wbgt: dataForTime.wbgt,
-            riskLevel: dataForTime.riskLevel,
-            time: dataForTime.time,
-          }
-        );
+    timeSeriesLookup.forEach(
+      (
+        timeSeriesData: {
+          time: string;
+          wbgt: number;
+          riskLevel: string;
+          riskColor: string;
+        }[],
+        stationId: string
+      ) => {
+        const dataForTime = timeSeriesData.find((data) => data.time === time);
+        if (dataForTime) {
+          map.setFeatureState(
+            {
+              source: "wbgt-points",
+              id: stationId,
+            },
+            {
+              riskColor: dataForTime.riskColor,
+              wbgt: dataForTime.wbgt,
+              riskLevel: dataForTime.riskLevel,
+              time: dataForTime.time,
+            }
+          );
+        }
       }
-    });
-  }, [timeSeriesLookup]);
+    );
+  }, []);
 
   // currentTimeIndex変更時にfeature-stateを更新
   useEffect(() => {
@@ -197,25 +189,28 @@ export default function WbgtMapCore({
     const map = mapRef.current.getMap();
     const currentTime = timePoints[currentTimeIndex];
     applyFeatureState(map, currentTime);
-  }, [currentTimeIndex, timePoints, applyFeatureState]);
+  }, [currentTimeIndex, timePoints, applyFeatureState, timeSeriesLookup]);
 
   // マップロード時の初期feature-state設定
-  const handleMapLoad = useCallback((event: { target: MapLibreMap }) => {
-    const map = event.target;
-    const currentTime = timePoints[currentTimeIndex];
+  const handleMapLoad = useCallback(
+    (event: { target: MapLibreMap }) => {
+      const map = event.target;
+      const currentTime = timePoints[currentTimeIndex];
 
-    const applyInitialState = () => {
-      if (map.getSource("wbgt-points")) {
-        applyFeatureState(map, currentTime);
+      const applyInitialState = () => {
+        if (map.getSource("wbgt-points")) {
+          applyFeatureState(map, currentTime);
+        }
+      };
+
+      if (map.isStyleLoaded()) {
+        applyInitialState();
+      } else {
+        map.on("style.load", applyInitialState);
       }
-    };
-
-    if (map.isStyleLoaded()) {
-      applyInitialState();
-    } else {
-      map.on("style.load", applyInitialState);
-    }
-  }, [timePoints, currentTimeIndex, applyFeatureState]);
+    },
+    [timePoints, currentTimeIndex, applyFeatureState, timeSeriesLookup]
+  );
 
   return (
     <div className="relative w-full h-full">
@@ -232,7 +227,7 @@ export default function WbgtMapCore({
         onLoad={handleMapLoad}
         interactiveLayerIds={["wbgt-circles"]}
       >
-        <Source id="wbgt-points" type="geojson" data={staticGeoJSON}>
+        <Source id="wbgt-points" type="geojson" data={wbgtData}>
           <Layer {...wbgtLayer} />
         </Source>
 

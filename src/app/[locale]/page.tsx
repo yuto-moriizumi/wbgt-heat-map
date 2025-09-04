@@ -9,15 +9,18 @@ export default async function Home({
 }) {
   const { locale } = await params;
   // サーバーサイドでWBGTデータを取得
-  let wbgtGeoJSON;
+  let wbgtBundle;
   try {
-    wbgtGeoJSON = await fetchWbgtData();
+    wbgtBundle = await fetchWbgtData();
   } catch (error) {
     console.error("Failed to fetch WBGT data:", error);
-    // エラー時は空のGeoJSONを返す
-    wbgtGeoJSON = {
-      type: "FeatureCollection" as const,
-      features: [],
+    // エラー時は空のGeoJSONと空のtimePointsを返す
+    wbgtBundle = {
+      geojson: {
+        type: "FeatureCollection" as const,
+        features: [],
+      },
+      timePoints: [],
     };
   }
 
@@ -55,15 +58,19 @@ export default async function Home({
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-bold text-black">{t("title")}</h1>
           <p className="text-black text-sm">{t("description")}</p>
-          {wbgtGeoJSON.features.length > 0 && (
+          {wbgtBundle.geojson.features.length > 0 && (
             <p className="text-xs text-gray-700">
-              表示地点数: {wbgtGeoJSON.features.length}地点
+              表示地点数: {wbgtBundle.geojson.features.length}地点
             </p>
           )}
         </div>
       </header>
       <div className="h-[calc(100vh-45px)] relative">
-        <WbgtMap wbgtData={wbgtGeoJSON} translations={mapTranslations} />
+        <WbgtMap
+          wbgtData={wbgtBundle.geojson}
+          timePoints={wbgtBundle.timePoints}
+          translations={mapTranslations}
+        />
 
         {/* 凡例 */}
         <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">

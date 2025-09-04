@@ -1,18 +1,12 @@
 "use client";
 
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState } from "react";
 import TimeSlider from "./TimeSlider";
 import WbgtMapCore from "./WbgtMapCore";
 
-interface TimeSeriesData {
-  time: string;
-  wbgt: number;
-  riskLevel: string;
-  riskColor: string;
-}
-
 interface WbgtMapProps {
   wbgtData: GeoJSON.FeatureCollection;
+  timePoints: string[];
   translations: {
     stationName: string;
     wbgt: string;
@@ -28,25 +22,13 @@ interface WbgtMapProps {
   };
 }
 
-export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
+export default function WbgtMap({
+  wbgtData,
+  timePoints,
+  translations,
+}: WbgtMapProps) {
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-
-  // 全ての時系列データから時刻一覧を取得
-  const timePoints = useMemo(() => {
-    const timeSet = new Set<string>();
-
-    wbgtData.features.forEach((feature) => {
-      const timeSeriesData = feature.properties?.timeSeriesData as
-        | TimeSeriesData[]
-        | undefined;
-      if (timeSeriesData) {
-        timeSeriesData.forEach((data) => timeSet.add(data.time));
-      }
-    });
-
-    return Array.from(timeSet).sort();
-  }, [wbgtData]);
 
   // 時刻変更のハンドラー
   const handleTimeChange = useCallback((timeIndex: number) => {
@@ -64,6 +46,7 @@ export default function WbgtMap({ wbgtData, translations }: WbgtMapProps) {
         wbgtData={wbgtData}
         currentTimeIndex={currentTimeIndex}
         translations={translations}
+        timePoints={timePoints}
       />
 
       {/* 時系列スライダー */}

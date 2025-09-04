@@ -39,11 +39,46 @@ export interface WbgtGeoJSON {
   }>;
 }
 
+export interface WbgtDataResult {
+  geojson: WbgtGeoJSON;
+  timePoints: string[];
+}
+
 interface Station {
   id: string;
   name: string;
   lat: string;
   lng: string;
+}
+
+// 日時文字列を正規化する関数
+function normalizeDateTime(date: string, time: string): string {
+  if (date.includes("/")) {
+    const [y, m, d] = date.split("/");
+    let hh = "", mi = "";
+    if (time.includes(":")) {
+      [hh, mi] = time.split(":");
+    } else {
+      const t = String(time).padStart(4, "0");
+      hh = t.slice(0, 2);
+      mi = t.slice(2, 4);
+    }
+    return `${String(y).padStart(4, "0")}/${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")} ${hh.padStart(2, "0")}:${mi.padStart(2, "0")}`;
+  } else if (date.length === 8) {
+    const y = date.slice(0, 4);
+    const m = date.slice(4, 6);
+    const d = date.slice(6, 8);
+    let hh = "", mi = "";
+    if (time.includes(":")) {
+      [hh, mi] = time.split(":");
+    } else {
+      const t = String(time).padStart(4, "0");
+      hh = t.slice(0, 2);
+      mi = t.slice(2, 4);
+    }
+    return `${y}/${m}/${d} ${hh.padStart(2, "0")}:${mi.padStart(2, "0")}`;
+  }
+  return `${date} ${time}`;
 }
 
 // リスクレベルと色を決定する関数
@@ -93,7 +128,7 @@ async function getStations(): Promise<Station[]> {
   }
 }
 
-export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
+export async function fetchWbgtData(): Promise<WbgtDataResult> {
   try {
     // 現在の年月を取得
     const now = new Date();
@@ -176,6 +211,35 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
 
     console.log(`ヘッダーから地点ID数: ${stationIds.length}個`);
 
+    // 行ごとの正規化済み時刻と、行に有効値があるかを事前計算
+    const rowTimes: string[] = [];
+    const rowHasAny: boolean[] = [];
+    const timePoints: string[] = [];
+    const timeSeen = new Set<string>();
+
+    for (let rowIndex = 1; rowIndex < records.length; rowIndex++) {
+      const row = records[rowIndex];
+      if (!row) continue;
+      const date = String(row[0] ?? "");
+      const time = String(row[1] ?? "");
+      const t = normalizeDateTime(date, time);
+      rowTimes[rowIndex] = t;
+
+      let hasAny = false;
+      for (let col = 2; col < row.length; col++) {
+        const v = row[col];
+        if (v !== undefined && v !== "" && !isNaN(Number(v))) {
+          hasAny = true;
+          break;
+        }
+      }
+      rowHasAny[rowIndex] = hasAny;
+      if (hasAny && !timeSeen.has(t)) {
+        timeSeen.add(t);
+        timePoints.push(t); // CSVの行順を保持
+      }
+    }
+
     // GeoJSONフィーチャーを作成
     const features = [];
 
@@ -203,8 +267,6 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
         const row = records[rowIndex];
         if (!row || row.length <= stationIndex + 2) continue;
 
-        const date = row[0];
-        const time = row[1];
         const value = row[stationIndex + 2]; // Date, Timeの後の列
 
         if (value && value !== "" && !isNaN(Number(value))) {
@@ -216,7 +278,7 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
           }
 
           const { level, color } = getRiskLevel(wbgt);
-          const timeString = `${date} ${time}`;
+          const timeString = rowTimes[rowIndex];
 
           timeSeriesData.push({
             time: timeString,
@@ -260,18 +322,21 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
 
     console.log(`GeoJSONフィーチャー作成完了: ${features.length}地点`);
 
-    const geoJson: WbgtGeoJSON = {
+    const geojson: WbgtGeoJSON = {
       type: "FeatureCollection",
       features,
     };
 
-    return geoJson;
+    return { geojson, timePoints };
   } catch (error) {
     console.error("WBGTデータの取得に失敗:", error);
-    // エラー時は空のGeoJSONを返す
+    // エラー時は空のGeoJSONと空のtimePointsを返す
     return {
-      type: "FeatureCollection",
-      features: [],
+      geojson: {
+        type: "FeatureCollection",
+        features: [],
+      },
+      timePoints: [],
     };
   }
 }
