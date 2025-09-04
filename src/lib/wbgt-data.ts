@@ -237,24 +237,25 @@ export async function fetchWbgtData(): Promise<WbgtGeoJSON> {
 
       const { level, color } = getRiskLevel(latestWbgt);
 
-      features.push({
-        type: "Feature" as const,
-        properties: {
-          id: stationId,
-          name: station.name,
-          wbgt: latestWbgt,
-          riskLevel: level,
-          riskColor: color,
-          timeSeriesData: timeSeriesData,
-        },
-        geometry: {
-          type: "Point" as const,
-          coordinates: [parseFloat(station.lng), parseFloat(station.lat)] as [
-            number,
-            number
-          ],
-        },
-      });
+        features.push({
+          type: "Feature" as const,
+          id: stationId, // トップレベルidを追加
+          properties: {
+            id: stationId,
+            name: station.name,
+            wbgt: latestWbgt,
+            riskLevel: level,
+            riskColor: color,
+            timeSeriesData: timeSeriesData,
+          },
+          geometry: {
+            type: "Point" as const,
+            coordinates: [parseFloat(station.lng), parseFloat(station.lat)] as [
+              number,
+              number
+            ],
+          },
+        });
     }
 
     console.log(`GeoJSONフィーチャー作成完了: ${features.length}地点`);

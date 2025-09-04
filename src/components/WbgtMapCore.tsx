@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import {
-  Map,
+  Map as MapGL,
   Source,
   Layer,
   Popup,
@@ -10,13 +10,42 @@ import {
   MapRef,
   LayerProps,
 } from "react-map-gl/maplibre";
+import type { Map as MapLibreMap } from "maplibre-gl";
+
+// マップスタイルをコンポーネント外に定義（ちらつき防止）
+const baseMapStyle = {
+  version: 8 as const,
+  sources: {
+    "gsi-std": {
+      type: "raster" as const,
+      tiles: [
+        "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
+      ],
+      tileSize: 256,
+      attribution:
+        '地図データ © <a href="https://www.gsi.go.jp/" target="_blank" rel="noreferrer">国土地理院</a>',
+    },
+  },
+  layers: [
+    {
+      id: "gsi-std",
+      type: "raster" as const,
+      source: "gsi-std",
+    },
+  ],
+};
 
 const wbgtLayer: LayerProps = {
   id: "wbgt-circles",
   type: "circle",
   paint: {
     "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 10, 8, 15, 12],
-    "circle-color": ["get", "riskColor"],
+    "circle-color": [
+      "coalesce",
+      ["feature-state", "riskColor"],
+      ["get", "riskColor"],
+      "#cccccc" // デフォルト色
+    ],
     "circle-stroke-width": 2,
     "circle-stroke-color": "#ffffff",
     "circle-opacity": 0.8,
@@ -76,17 +105,27 @@ export default function WbgtMapCore({
       const { features } = event;
       if (features && features.length > 0) {
         const feature = features[0];
-        const { name, wbgt, id, time } = feature.properties;
-        const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
-        setPopupInfo({
-          longitude: event.lngLat.lng,
-          latitude: event.lngLat.lat,
-          name,
-          wbgt,
-          riskLevel: translatedRiskLevel,
-          time: time || "",
-          id,
-        });
+        const { name, id } = feature.properties;
+        const map = mapRef.current?.getMap();
+        if (map) {
+          const featureState = map.getFeatureState({
+            source: "wbgt-points",
+            id: id,
+          });
+          const wbgt = featureState?.wbgt || feature.properties.wbgt;
+
+          const time = featureState?.time || feature.properties.time || "";
+          const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
+          setPopupInfo({
+            longitude: event.lngLat.lng,
+            latitude: event.lngLat.lat,
+            name,
+            wbgt,
+            riskLevel: translatedRiskLevel,
+            time,
+            id,
+          });
+        }
       } else {
         setPopupInfo(null);
       }
@@ -110,85 +149,77 @@ export default function WbgtMapCore({
     return Array.from(timeSet).sort();
   }, [wbgtData]);
 
-  // 各時刻に対応するGeoJSONデータを事前に計算
-  const geoJSONByTime = useMemo(() => {
-    performance.mark("geoJSONByTime-start");
+  // 静的なGeoJSONデータ（全時刻のデータを保持）
+  const staticGeoJSON = useMemo(() => wbgtData, [wbgtData]);
 
-    if (timePoints.length === 0) {
-      performance.mark("geoJSONByTime-end");
-      const measure = performance.measure(
-        "geoJSONByTime",
-        "geoJSONByTime-start",
-        "geoJSONByTime-end"
-      );
-      console.log(`geoJSONByTime calculation time: ${measure.duration} ms`);
-      return [wbgtData];
-    }
-
-    const result = timePoints.map((targetTime) => {
-      const features = wbgtData.features
-        .map((feature) => {
-          const timeSeriesData = feature.properties?.timeSeriesData as
-            | {
-                time: string;
-                wbgt: number;
-                riskLevel: string;
-                riskColor: string;
-              }[]
-            | undefined;
-
-          if (timeSeriesData) {
-            const dataForTime = timeSeriesData.find(
-              (data) => data.time === targetTime
-            );
-            if (dataForTime) {
-              return {
-                ...feature,
-                properties: {
-                  ...feature.properties,
-                  wbgt: dataForTime.wbgt,
-                  riskLevel: dataForTime.riskLevel,
-                  riskColor: dataForTime.riskColor,
-                  time: dataForTime.time,
-                },
-              };
-            }
-            return null;
-          }
-          // 時系列データがない場合は元のデータを使用
-          return feature;
-        })
-        .filter((feature): feature is GeoJSON.Feature => feature !== null);
-
-      return {
-        type: "FeatureCollection" as const,
-        features,
-      };
+  // ルックアップマップ: stationId -> timeSeriesData[]
+  const timeSeriesLookup = useMemo(() => {
+    const lookup = new Map<string, { time: string; wbgt: number; riskLevel: string; riskColor: string }[]>();
+    wbgtData.features.forEach((feature) => {
+      const id = feature.properties?.id;
+      const timeSeriesData = feature.properties?.timeSeriesData as
+        | { time: string; wbgt: number; riskLevel: string; riskColor: string }[]
+        | undefined;
+      if (id && timeSeriesData) {
+        lookup.set(id, timeSeriesData);
+      }
     });
+    return lookup;
+  }, [wbgtData]);
 
-    performance.mark("geoJSONByTime-end");
-    const measure = performance.measure(
-      "geoJSONByTime",
-      "geoJSONByTime-start",
-      "geoJSONByTime-end"
-    );
-    console.log(`geoJSONByTime calculation time: ${measure.duration} ms`);
 
-    return result;
-  }, [wbgtData, timePoints]);
 
-  const currentGeoJSON = useMemo(
-    () =>
-      geoJSONByTime[currentTimeIndex] || {
-        type: "FeatureCollection" as const,
-        features: [],
-      },
-    [geoJSONByTime, currentTimeIndex]
-  );
+  // feature-stateを適用する関数
+  const applyFeatureState = useCallback((map: MapLibreMap, time: string) => {
+    timeSeriesLookup.forEach((timeSeriesData: { time: string; wbgt: number; riskLevel: string; riskColor: string }[], stationId: string) => {
+      const dataForTime = timeSeriesData.find((data) => data.time === time);
+      if (dataForTime) {
+        map.setFeatureState(
+          {
+            source: "wbgt-points",
+            id: stationId,
+          },
+          {
+            riskColor: dataForTime.riskColor,
+            wbgt: dataForTime.wbgt,
+            riskLevel: dataForTime.riskLevel,
+            time: dataForTime.time,
+          }
+        );
+      }
+    });
+  }, [timeSeriesLookup]);
+
+  // currentTimeIndex変更時にfeature-stateを更新
+  useEffect(() => {
+    if (!mapRef.current || timePoints.length === 0) return;
+
+    const map = mapRef.current.getMap();
+    const currentTime = timePoints[currentTimeIndex];
+    applyFeatureState(map, currentTime);
+  }, [currentTimeIndex, timePoints, applyFeatureState]);
+
+  // マップロード時の初期feature-state設定
+  const handleMapLoad = useCallback((event: { target: MapLibreMap }) => {
+    const map = event.target;
+    const currentTime = timePoints[currentTimeIndex];
+
+    const applyInitialState = () => {
+      if (map.getSource("wbgt-points")) {
+        applyFeatureState(map, currentTime);
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      applyInitialState();
+    } else {
+      map.on("style.load", applyInitialState);
+    }
+  }, [timePoints, currentTimeIndex, applyFeatureState]);
 
   return (
     <div className="relative w-full h-full">
-      <Map
+      <MapGL
         ref={mapRef}
         initialViewState={{
           longitude: 139.7671,
@@ -196,31 +227,12 @@ export default function WbgtMapCore({
           zoom: 5,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle={{
-          version: 8,
-          sources: {
-            "gsi-std": {
-              type: "raster",
-              tiles: [
-                "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",
-              ],
-              tileSize: 256,
-              attribution:
-                '地図データ © <a href="https://www.gsi.go.jp/" target="_blank" rel="noreferrer">国土地理院</a>',
-            },
-          },
-          layers: [
-            {
-              id: "gsi-std",
-              type: "raster",
-              source: "gsi-std",
-            },
-          ],
-        }}
+        mapStyle={baseMapStyle}
         onClick={handleMapClick}
+        onLoad={handleMapLoad}
         interactiveLayerIds={["wbgt-circles"]}
       >
-        <Source id="wbgt-points" type="geojson" data={currentGeoJSON}>
+        <Source id="wbgt-points" type="geojson" data={staticGeoJSON}>
           <Layer {...wbgtLayer} />
         </Source>
 
@@ -270,7 +282,7 @@ export default function WbgtMapCore({
             </div>
           </Popup>
         )}
-      </Map>
+      </MapGL>
     </div>
   );
 }
