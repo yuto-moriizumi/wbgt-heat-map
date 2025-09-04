@@ -1,4 +1,4 @@
-import { fetchWbgtData } from "@/lib/wbgt-data";
+import { fetchWbgtData, WbgtDataResult } from "@/lib/wbgt-data";
 import WbgtMap from "@/components/WbgtMap";
 import { getTranslations } from "next-intl/server";
 
@@ -9,7 +9,7 @@ export default async function Home({
 }) {
   const { locale } = await params;
   // サーバーサイドでWBGTデータを取得
-  let wbgtBundle;
+  let wbgtBundle: WbgtDataResult;
   try {
     wbgtBundle = await fetchWbgtData();
   } catch (error) {

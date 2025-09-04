@@ -1,6 +1,7 @@
 import { parse } from "csv-parse/sync";
 import { readFileSync } from "fs";
 import path from "path";
+import dayjs from "./dayjs";
 
 export interface WbgtData {
   id: string;
@@ -41,6 +42,11 @@ export interface WbgtGeoJSON {
 
 export interface WbgtDataResult {
   geojson: WbgtGeoJSON;
+  /**
+   * WBGTデータが存在する時刻のISO文字列配列。
+   * JST（日本標準時）として扱われます。
+   * @example ["2025-09-04T17:00:00.000Z", "2025-09-04T18:00:00.000Z"]
+   */
   timePoints: string[];
 }
 
@@ -53,32 +59,17 @@ interface Station {
 
 // 日時文字列を正規化する関数
 function normalizeDateTime(date: string, time: string): string {
-  if (date.includes("/")) {
-    const [y, m, d] = date.split("/");
-    let hh = "", mi = "";
-    if (time.includes(":")) {
-      [hh, mi] = time.split(":");
-    } else {
-      const t = String(time).padStart(4, "0");
-      hh = t.slice(0, 2);
-      mi = t.slice(2, 4);
-    }
-    return `${String(y).padStart(4, "0")}/${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")} ${hh.padStart(2, "0")}:${mi.padStart(2, "0")}`;
-  } else if (date.length === 8) {
-    const y = date.slice(0, 4);
-    const m = date.slice(4, 6);
-    const d = date.slice(6, 8);
-    let hh = "", mi = "";
-    if (time.includes(":")) {
-      [hh, mi] = time.split(":");
-    } else {
-      const t = String(time).padStart(4, "0");
-      hh = t.slice(0, 2);
-      mi = t.slice(2, 4);
-    }
-    return `${y}/${m}/${d} ${hh.padStart(2, "0")}:${mi.padStart(2, "0")}`;
+  const dateTimeString = `${date} ${time}`;
+  // dayjsは "YYYY/MM/DD" 形式の日付と "H:mm" 形式の時刻を解釈できる
+  const d = dayjs(dateTimeString);
+
+  if (!d.isValid()) {
+    // パース失敗時は元の文字列を結合して返す
+    return `${date} ${time}`;
   }
-  return `${date} ${time}`;
+
+  // YYYY/MM/DD HH:mm 形式に統一して返す（ゼロ埋めされる）
+  return d.format("YYYY/MM/DD HH:mm");
 }
 
 // リスクレベルと色を決定する関数
@@ -138,21 +129,14 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
 
     console.log(`現在の年月: ${currentYearMonth}`);
 
-    // 複数のAPIエンドポイントを試行
-    // 正式な実況値データAPI (est15WG) を使用
+    // 過去数日分を表示するために、今月分と先月分のデータを取得する
     const possibleUrls = [
-      // 正式な実況値データAPI
+      // 現在の月
       `https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_${currentYearMonth}.csv`,
-      // 前月のデータ
+      // 先月のデータ
       `https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_${year}${String(
         Number(month) - 1
       ).padStart(2, "0")}.csv`,
-      // 前々月のデータ
-      `https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_${year}${String(
-        Number(month) - 2
-      ).padStart(2, "0")}.csv`,
-      // サンプルデータ（フォールバック）
-      "https://www.wbgt.env.go.jp/data_service_sample/wbgt_all_201907.csv",
     ];
 
     let response: Response | null = null;
@@ -236,7 +220,7 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
       rowHasAny[rowIndex] = hasAny;
       if (hasAny && !timeSeen.has(t)) {
         timeSeen.add(t);
-        timePoints.push(t); // CSVの行順を保持
+        timePoints.push(dayjs.tz(t, "Asia/Tokyo").toISOString()); // JSTとしてISO文字列に変換
       }
     }
 
@@ -299,25 +283,25 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
 
       const { level, color } = getRiskLevel(latestWbgt);
 
-        features.push({
-          type: "Feature" as const,
-          id: stationId, // トップレベルidを追加
-          properties: {
-            id: stationId,
-            name: station.name,
-            wbgt: latestWbgt,
-            riskLevel: level,
-            riskColor: color,
-            timeSeriesData: timeSeriesData,
-          },
-          geometry: {
-            type: "Point" as const,
-            coordinates: [parseFloat(station.lng), parseFloat(station.lat)] as [
-              number,
-              number
-            ],
-          },
-        });
+      features.push({
+        type: "Feature" as const,
+        id: stationId, // トップレベルidを追加
+        properties: {
+          id: stationId,
+          name: station.name,
+          wbgt: latestWbgt,
+          riskLevel: level,
+          riskColor: color,
+          timeSeriesData: timeSeriesData,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [parseFloat(station.lng), parseFloat(station.lat)] as [
+            number,
+            number
+          ],
+        },
+      });
     }
 
     console.log(`GeoJSONフィーチャー作成完了: ${features.length}地点`);

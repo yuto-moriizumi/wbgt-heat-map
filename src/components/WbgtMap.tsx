@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import TimeSlider from "./TimeSlider";
 import WbgtMapCore from "./WbgtMapCore";
+import dayjs from "@/lib/dayjs";
 
 interface WbgtMapProps {
   wbgtData: GeoJSON.FeatureCollection;
@@ -30,6 +31,12 @@ export default function WbgtMap({
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // ISO文字列をDayjsオブジェクトに復元
+  const parsedTimePoints = useMemo(
+    () => timePoints.map(iso => dayjs(iso).tz("Asia/Tokyo")),
+    [timePoints]
+  );
+
   // 時刻変更のハンドラー
   const handleTimeChange = useCallback((timeIndex: number) => {
     setCurrentTimeIndex(timeIndex);
@@ -46,19 +53,19 @@ export default function WbgtMap({
         wbgtData={wbgtData}
         currentTimeIndex={currentTimeIndex}
         translations={translations}
-        timePoints={timePoints}
+        timePoints={parsedTimePoints}
       />
 
       {/* 時系列スライダー */}
-      {timePoints.length > 1 && (
+      {parsedTimePoints.length > 1 && (
         <div className="absolute top-4 left-4">
           <TimeSlider
-            timePoints={timePoints}
+            timePoints={parsedTimePoints}
             currentTimeIndex={currentTimeIndex}
             onTimeChange={handleTimeChange}
             isPlaying={isPlaying}
             onPlayToggle={handlePlayToggle}
-            playbackSpeed={2000}
+            playbackSpeed={500}
           />
         </div>
       )}

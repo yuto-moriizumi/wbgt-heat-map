@@ -11,6 +11,7 @@ import {
   LayerProps,
 } from "react-map-gl/maplibre";
 import type { Map as MapLibreMap } from "maplibre-gl";
+import type { Dayjs } from "dayjs";
 
 // マップスタイルをコンポーネント外に定義（ちらつき防止）
 const baseMapStyle = {
@@ -53,11 +54,12 @@ const wbgtLayer: LayerProps = {
 interface WbgtMapCoreProps {
   wbgtData: GeoJSON.FeatureCollection;
   currentTimeIndex: number;
-  timePoints: string[];
+  timePoints: Dayjs[];
   translations: {
     stationName: string;
     wbgt: string;
     riskLevel: string;
+    legendTitle: string;
     disaster: string;
     extreme: string;
     danger: string;
@@ -187,7 +189,7 @@ export default function WbgtMapCore({
     if (!mapRef.current || timePoints.length === 0) return;
 
     const map = mapRef.current.getMap();
-    const currentTime = timePoints[currentTimeIndex];
+    const currentTime = timePoints[currentTimeIndex].format('YYYY/MM/DD HH:mm');
     applyFeatureState(map, currentTime);
   }, [currentTimeIndex, timePoints, applyFeatureState, timeSeriesLookup]);
 
@@ -195,7 +197,7 @@ export default function WbgtMapCore({
   const handleMapLoad = useCallback(
     (event: { target: MapLibreMap }) => {
       const map = event.target;
-      const currentTime = timePoints[currentTimeIndex];
+      const currentTime = timePoints[currentTimeIndex].format('YYYY/MM/DD HH:mm');
 
       const applyInitialState = () => {
         if (map.getSource("wbgt-points")) {
