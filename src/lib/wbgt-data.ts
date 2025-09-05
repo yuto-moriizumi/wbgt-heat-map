@@ -20,22 +20,13 @@ export interface TimeSeriesData {
   riskColor: string;
 }
 
-export interface WbgtGeoJSON {
-  type: "FeatureCollection";
-  features: Array<{
-    type: "Feature";
-    properties: {
-      id: string;
-      name: string;
-      time?: string;
-      timeSeriesData?: TimeSeriesData[];
-    };
-    geometry: {
-      type: "Point";
-      coordinates: [number, number];
-    };
-  }>;
+export interface WbgtProperties {
+  id: string;
+  name: string;
+  timeSeriesData: TimeSeriesData[];
 }
+
+export type WbgtGeoJSON = GeoJSON.FeatureCollection<GeoJSON.Point, WbgtProperties>;
 
 export interface WbgtDataResult {
   geojson: WbgtGeoJSON;

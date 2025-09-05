@@ -113,9 +113,17 @@ export default function WbgtMapCore({
             source: "wbgt-points",
             id: id,
           });
-          const wbgt = featureState?.wbgt || (timeSeriesData && timeSeriesData.length > 0 ? timeSeriesData[0].wbgt : 0);
+          const wbgt =
+            featureState?.wbgt ||
+            (timeSeriesData && timeSeriesData.length > 0
+              ? timeSeriesData[0].wbgt
+              : 0);
 
-          const time = featureState?.time || (timeSeriesData && timeSeriesData.length > 0 ? timeSeriesData[0].time : "");
+          const time =
+            featureState?.time ||
+            (timeSeriesData && timeSeriesData.length > 0
+              ? timeSeriesData[0].time
+              : "");
           const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
           setPopupInfo({
             longitude: event.lngLat.lng,
@@ -153,42 +161,45 @@ export default function WbgtMapCore({
   })();
 
   // feature-stateを適用する関数
-  const applyFeatureState = useCallback((map: MapLibreMap, time: string) => {
-    timeSeriesLookup.forEach(
-      (
-        timeSeriesData: {
-          time: string;
-          wbgt: number;
-          riskLevel: string;
-          riskColor: string;
-        }[],
-        stationId: string
-      ) => {
-        const dataForTime = timeSeriesData.find((data) => data.time === time);
-        if (dataForTime) {
-          map.setFeatureState(
-            {
-              source: "wbgt-points",
-              id: stationId,
-            },
-            {
-              riskColor: dataForTime.riskColor,
-              wbgt: dataForTime.wbgt,
-              riskLevel: dataForTime.riskLevel,
-              time: dataForTime.time,
-            }
-          );
+  const applyFeatureState = useCallback(
+    (map: MapLibreMap, time: string) => {
+      timeSeriesLookup.forEach(
+        (
+          timeSeriesData: {
+            time: string;
+            wbgt: number;
+            riskLevel: string;
+            riskColor: string;
+          }[],
+          stationId: string
+        ) => {
+          const dataForTime = timeSeriesData.find((data) => data.time === time);
+          if (dataForTime) {
+            map.setFeatureState(
+              {
+                source: "wbgt-points",
+                id: stationId,
+              },
+              {
+                riskColor: dataForTime.riskColor,
+                wbgt: dataForTime.wbgt,
+                riskLevel: dataForTime.riskLevel,
+                time: dataForTime.time,
+              }
+            );
+          }
         }
-      }
-    );
-  }, [timeSeriesLookup]);
+      );
+    },
+    [timeSeriesLookup]
+  );
 
   // currentTimeIndex変更時にfeature-stateを更新
   useEffect(() => {
     if (!mapRef.current || timePoints.length === 0) return;
 
     const map = mapRef.current.getMap();
-    const currentTime = timePoints[currentTimeIndex].format('YYYY/MM/DD HH:mm');
+    const currentTime = timePoints[currentTimeIndex].format("YYYY/MM/DD HH:mm");
     applyFeatureState(map, currentTime);
   }, [currentTimeIndex, timePoints, applyFeatureState, timeSeriesLookup]);
 
@@ -196,7 +207,8 @@ export default function WbgtMapCore({
   const handleMapLoad = useCallback(
     (event: { target: MapLibreMap }) => {
       const map = event.target;
-      const currentTime = timePoints[currentTimeIndex]?.format('YYYY/MM/DD HH:mm');
+      const currentTime =
+        timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm");
 
       const applyInitialState = () => {
         if (map.getSource("wbgt-points")) {
