@@ -40,9 +40,15 @@ const wbgtLayer: LayerProps = {
   paint: {
     "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 10, 8, 15, 12],
     "circle-color": [
-      "coalesce",
-      ["feature-state", "riskColor"],
-      "#cccccc", // デフォルト色
+      "step",
+      ["feature-state", "wbgt"],
+      "#0000FF", // デフォルト (ほぼ安全)
+      21, "#00FFFF", // 21以上 (注意)
+      25, "#FFFF00", // 25以上 (警戒)
+      28, "#FFA500", // 28以上 (厳重警戒)
+      31, "#FF4500", // 31以上 (危険)
+      33, "#FF0000", // 33以上 (極めて危険)
+      35, "#800080"  // 35以上 (災害級の危険)
     ],
     "circle-stroke-width": 2,
     "circle-stroke-color": "#ffffff",
@@ -146,12 +152,12 @@ export default function WbgtMapCore({
   const timeSeriesLookup = (() => {
     const lookup = new Map<
       string,
-      { time: string; wbgt: number; riskLevel: string; riskColor: string }[]
+      { time: string; wbgt: number }[]
     >();
     wbgtData.features.forEach((feature) => {
       const id = feature.properties?.id;
       const timeSeriesData = feature.properties?.timeSeriesData as
-        | { time: string; wbgt: number; riskLevel: string; riskColor: string }[]
+        | { time: string; wbgt: number }[]
         | undefined;
       if (id && timeSeriesData) {
         lookup.set(id, timeSeriesData);
@@ -168,8 +174,6 @@ export default function WbgtMapCore({
           timeSeriesData: {
             time: string;
             wbgt: number;
-            riskLevel: string;
-            riskColor: string;
           }[],
           stationId: string
         ) => {
@@ -181,9 +185,7 @@ export default function WbgtMapCore({
                 id: stationId,
               },
               {
-                riskColor: dataForTime.riskColor,
                 wbgt: dataForTime.wbgt,
-                riskLevel: dataForTime.riskLevel,
                 time: dataForTime.time,
               }
             );
@@ -221,18 +223,16 @@ export default function WbgtMapCore({
               const timeSeriesData = feature.properties?.timeSeriesData;
               if (id && timeSeriesData && timeSeriesData.length > 0) {
                 const initialData = timeSeriesData[0];
-                map.setFeatureState(
-                  {
-                    source: "wbgt-points",
-                    id: id,
-                  },
-                  {
-                    riskColor: initialData.riskColor,
-                    wbgt: initialData.wbgt,
-                    riskLevel: initialData.riskLevel,
-                    time: initialData.time,
-                  }
-                );
+                 map.setFeatureState(
+                   {
+                     source: "wbgt-points",
+                     id: id,
+                   },
+                   {
+                     wbgt: initialData.wbgt,
+                     time: initialData.time,
+                   }
+                 );
               }
             });
           }

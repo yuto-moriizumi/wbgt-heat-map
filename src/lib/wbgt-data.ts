@@ -16,8 +16,6 @@ export interface WbgtData {
 export interface TimeSeriesData {
   time: string;
   wbgt: number;
-  riskLevel: string;
-  riskColor: string;
 }
 
 export interface WbgtProperties {
@@ -248,15 +246,12 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
             wbgt = wbgt / 10;
           }
 
-          const { level, color } = getRiskLevel(wbgt);
-          const timeString = rowTimes[rowIndex];
+           const timeString = rowTimes[rowIndex];
 
-          timeSeriesData.push({
-            time: timeString,
-            wbgt: wbgt,
-            riskLevel: level,
-            riskColor: color,
-          });
+           timeSeriesData.push({
+             time: timeString,
+             wbgt: wbgt,
+           });
         }
       }
 
