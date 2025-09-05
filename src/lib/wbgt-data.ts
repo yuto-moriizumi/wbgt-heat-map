@@ -27,9 +27,6 @@ export interface WbgtGeoJSON {
     properties: {
       id: string;
       name: string;
-      wbgt: number;
-      riskLevel: string;
-      riskColor: string;
       time?: string;
       timeSeriesData?: TimeSeriesData[];
     };
@@ -244,7 +241,6 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
 
       // 時系列データを収集
       const timeSeriesData: TimeSeriesData[] = [];
-      let latestWbgt = null;
 
       // 各時刻のデータを処理（ヘッダー行をスキップ）
       for (let rowIndex = 1; rowIndex < records.length; rowIndex++) {
@@ -270,18 +266,13 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
             riskLevel: level,
             riskColor: color,
           });
-
-          // 最新のデータとして保存
-          latestWbgt = wbgt;
         }
       }
 
-      if (latestWbgt === null || timeSeriesData.length === 0) {
+      if (timeSeriesData.length === 0) {
         console.log(`地点ID ${stationId} にWBGTデータがありません`);
         continue;
       }
-
-      const { level, color } = getRiskLevel(latestWbgt);
 
       features.push({
         type: "Feature" as const,
@@ -289,9 +280,6 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
         properties: {
           id: stationId,
           name: station.name,
-          wbgt: latestWbgt,
-          riskLevel: level,
-          riskColor: color,
           timeSeriesData: timeSeriesData,
         },
         geometry: {

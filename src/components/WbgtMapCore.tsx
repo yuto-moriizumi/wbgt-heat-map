@@ -42,7 +42,6 @@ const wbgtLayer: LayerProps = {
     "circle-color": [
       "coalesce",
       ["feature-state", "riskColor"],
-      ["get", "riskColor"],
       "#cccccc", // デフォルト色
     ],
     "circle-stroke-width": 2,
@@ -107,16 +106,16 @@ export default function WbgtMapCore({
       const { features } = event;
       if (features && features.length > 0) {
         const feature = features[0];
-        const { name, id } = feature.properties;
+        const { name, id, timeSeriesData } = feature.properties;
         const map = mapRef.current?.getMap();
         if (map) {
           const featureState = map.getFeatureState({
             source: "wbgt-points",
             id: id,
           });
-          const wbgt = featureState?.wbgt || feature.properties.wbgt;
+          const wbgt = featureState?.wbgt || (timeSeriesData && timeSeriesData.length > 0 ? timeSeriesData[0].wbgt : 0);
 
-          const time = featureState?.time || feature.properties.time || "";
+          const time = featureState?.time || (timeSeriesData && timeSeriesData.length > 0 ? timeSeriesData[0].time : "");
           const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
           setPopupInfo({
             longitude: event.lngLat.lng,
@@ -182,7 +181,7 @@ export default function WbgtMapCore({
         }
       }
     );
-  }, []);
+  }, [timeSeriesLookup]);
 
   // currentTimeIndex変更時にfeature-stateを更新
   useEffect(() => {
@@ -197,11 +196,34 @@ export default function WbgtMapCore({
   const handleMapLoad = useCallback(
     (event: { target: MapLibreMap }) => {
       const map = event.target;
-      const currentTime = timePoints[currentTimeIndex].format('YYYY/MM/DD HH:mm');
+      const currentTime = timePoints[currentTimeIndex]?.format('YYYY/MM/DD HH:mm');
 
       const applyInitialState = () => {
         if (map.getSource("wbgt-points")) {
-          applyFeatureState(map, currentTime);
+          if (currentTime) {
+            applyFeatureState(map, currentTime);
+          } else {
+            // 初期状態ではtimeSeriesDataの最初の要素を使用
+            wbgtData.features.forEach((feature) => {
+              const id = feature.properties?.id;
+              const timeSeriesData = feature.properties?.timeSeriesData;
+              if (id && timeSeriesData && timeSeriesData.length > 0) {
+                const initialData = timeSeriesData[0];
+                map.setFeatureState(
+                  {
+                    source: "wbgt-points",
+                    id: id,
+                  },
+                  {
+                    riskColor: initialData.riskColor,
+                    wbgt: initialData.wbgt,
+                    riskLevel: initialData.riskLevel,
+                    time: initialData.time,
+                  }
+                );
+              }
+            });
+          }
         }
       };
 
@@ -211,7 +233,7 @@ export default function WbgtMapCore({
         map.on("style.load", applyInitialState);
       }
     },
-    [timePoints, currentTimeIndex, applyFeatureState, timeSeriesLookup]
+    [timePoints, currentTimeIndex, applyFeatureState, wbgtData]
   );
 
   return (
