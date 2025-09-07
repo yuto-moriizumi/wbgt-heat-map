@@ -24,7 +24,10 @@ export interface WbgtProperties {
   timeSeriesData: TimeSeriesData[];
 }
 
-export type WbgtGeoJSON = GeoJSON.FeatureCollection<GeoJSON.Point, WbgtProperties>;
+export type WbgtGeoJSON = GeoJSON.FeatureCollection<
+  GeoJSON.Point,
+  WbgtProperties
+>;
 
 export interface WbgtDataResult {
   geojson: WbgtGeoJSON;
@@ -107,64 +110,79 @@ async function getStations(): Promise<Station[]> {
 
 export async function fetchWbgtData(): Promise<WbgtDataResult> {
   try {
-    // 現在の年月を取得
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const currentYearMonth = `${year}${month}`;
+    // 現在の年月を取得（dayjsを使用）
+    const now = dayjs();
+    const currentYearMonth = now.format("YYYYMM");
+    const prevYearMonth = now.subtract(1, "month").format("YYYYMM");
 
-    console.log(`現在の年月: ${currentYearMonth}`);
+    console.log(`今月: ${currentYearMonth}, 先月: ${prevYearMonth}`);
 
-    // 過去数日分を表示するために、今月分と先月分のデータを取得する
-    const possibleUrls = [
-      // 現在の月
+    // 今月と先月の両方のデータを取得（先月、今月の順で）
+    const urls = [
+      `https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_${prevYearMonth}.csv`,
       `https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_${currentYearMonth}.csv`,
-      // 先月のデータ
-      `https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_${year}${String(
-        Number(month) - 1
-      ).padStart(2, "0")}.csv`,
     ];
 
-    let response: Response | null = null;
-    let usedUrl = "";
-
-    // 順番にURLを試行
-    for (const url of possibleUrls) {
+    // 両方のURLからデータを並行して取得
+    const fetchPromises = urls.map(async (url) => {
       try {
         console.log(`データ取得を試行: ${url}`);
-        const testResponse = await fetch(url);
-        if (testResponse.ok) {
-          response = testResponse;
-          usedUrl = url;
+        const response = await fetch(url);
+        if (response.ok) {
+          const csvText = await response.text();
           console.log(`データ取得成功: ${url}`);
-          break;
+          return csvText;
         } else {
-          console.log(`データ取得失敗 (${testResponse.status}): ${url}`);
+          console.log(`データ取得失敗 (${response.status}): ${url}`);
+          return null;
         }
       } catch (error) {
         console.log(`接続エラー: ${url} - ${error}`);
+        return null;
       }
+    });
+
+    const csvTexts = (await Promise.all(fetchPromises)).filter(
+      (text): text is string => text !== null
+    );
+
+    console.log(`${csvTexts.length}つのCSVデータを取得しました`);
+
+    // 複数のCSVデータを時系列順に正しく結合
+    let header = "";
+    const allDataRows: string[] = [];
+
+    for (let i = 0; i < csvTexts.length; i++) {
+      const lines = csvTexts[i].trim().split(/\r?\n/);
+      if (lines.length === 0) continue;
+
+      // 最初の有効なCSVからヘッダーを取得
+      if (header === "" && lines.length > 0) {
+        header = lines[0];
+      }
+
+      // データ行を収集
+      const dataRows = lines.slice(1).filter((line) => line.trim() !== "");
+      allDataRows.push(...dataRows);
     }
 
-    if (!response || !response.ok) {
-      throw new Error("すべてのデータソースでデータの取得に失敗しました");
+    if (header === "") {
+      throw new Error("有効なCSVヘッダーが見つかりませんでした");
     }
 
-    const csvText = await response.text();
-    console.log("CSVデータを取得しました:", csvText.substring(0, 200) + "...");
-    console.log(`使用データソース: ${usedUrl}`);
+    const combinedCsvText = [header, ...allDataRows].join("\n");
 
-    // データの年月を推定
-    if (usedUrl.includes("201907")) {
-      console.log("注意: サンプルデータ（2019年7月）を使用しています");
-    }
+    console.log(
+      "CSVデータを結合・ソートしました:",
+      combinedCsvText.substring(0, 400) + "..."
+    );
 
     // 地点マスタデータを取得
     const stations = await getStations();
     console.log(`地点マスタデータを取得: ${stations.length}地点`);
 
     // CSVをパース
-    const records = parse(csvText, {
+    const records = parse(combinedCsvText, {
       skip_empty_lines: true,
       trim: true,
     });
@@ -176,8 +194,8 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
     }
 
     // ヘッダー行から地点IDを取得
-    const header = records[0];
-    const stationIds = header.slice(2); // 最初の2列（Date, Time）をスキップ
+    const csvHeader = records[0];
+    const stationIds = csvHeader.slice(2); // 最初の2列（Date, Time）をスキップ
 
     console.log(`ヘッダーから地点ID数: ${stationIds.length}個`);
 
@@ -246,12 +264,12 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
             wbgt = wbgt / 10;
           }
 
-           const timeString = rowTimes[rowIndex];
+          const timeString = rowTimes[rowIndex];
 
-           timeSeriesData.push({
-             time: timeString,
-             wbgt: wbgt,
-           });
+          timeSeriesData.push({
+            time: timeString,
+            wbgt: wbgt,
+          });
         }
       }
 
