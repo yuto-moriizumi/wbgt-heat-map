@@ -2,6 +2,7 @@ import { fetchWbgtData } from "@/lib/fetch-wbgt-data";
 import { WbgtDataResult } from "@/lib/types";
 import WbgtMap from "@/components/WbgtMap";
 import { getTranslations } from "next-intl/server";
+import { createLegendItems } from "@/lib/wbgt-config";
 
 export default async function Home({
   params,
@@ -44,16 +45,11 @@ export default async function Home({
     dailyMaxLabel: tMap("dailyMaxLabel"),
   };
 
-  // 凡例の項目を定義
-  const legendItems = [
-    { color: "#800080", label: mapTranslations.disaster },
-    { color: "#FF0000", label: mapTranslations.extreme },
-    { color: "#FF4500", label: mapTranslations.danger },
-    { color: "#FFA500", label: mapTranslations.caution },
-    { color: "#FFFF00", label: mapTranslations.warning },
-    { color: "#00FFFF", label: mapTranslations.attention },
-    { color: "#0000FF", label: mapTranslations.safe },
-  ];
+  // 凡例の項目を統一定義から生成
+  const legendItems = createLegendItems().map(item => ({
+    color: item.color,
+    label: mapTranslations[item.level as keyof typeof mapTranslations]
+  }));
 
   return (
     <div className="min-h-screen">

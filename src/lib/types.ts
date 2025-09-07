@@ -1,24 +1,14 @@
-export interface WbgtData {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  wbgt: number;
-  riskLevel: string;
-  riskColor: string;
-}
-
 export interface TimeSeriesData {
   time: string;
   wbgt: number;
 }
 
-export interface DailyMaxData {
+interface DailyMaxData {
   date: string;
   wbgt: number;
 }
 
-export interface WbgtProperties {
+interface WbgtProperties {
   id: string;
   name: string;
   valueByDateTime: TimeSeriesData[];

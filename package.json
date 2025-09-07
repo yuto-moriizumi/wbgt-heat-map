@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "unused": "ts-unused-exports tsconfig.json"
   },
   "dependencies": {
     "csv-parse": "^6.1.0",
@@ -31,6 +32,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.0",
     "tailwindcss": "^4",
+    "ts-unused-exports": "^11.0.1",
     "typescript": "^5"
   }
 }

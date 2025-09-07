@@ -12,6 +12,7 @@ import {
 } from "react-map-gl/maplibre";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import type { Dayjs } from "dayjs";
+import { createMapLibreColorExpression, getWbgtLevelInfo, CIRCLE_STROKE_COLOR } from "@/lib/wbgt-config";
 
 // マップスタイルをコンポーネント外に定義（ちらつき防止）
 const baseMapStyle = {
@@ -39,23 +40,10 @@ const wbgtLayer: LayerProps = {
   type: "circle",
   paint: {
     "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 10, 8, 15, 12],
-    "circle-color": [
-      "case",
-      ["==", ["feature-state", "wbgt"], 0], "#808080", // 0 (データなし) の場合はグレー
-      [
-        "step",
-        ["feature-state", "wbgt"],
-        "#0000FF", // デフォルト (ほぼ安全)
-        21, "#00FFFF", // 21以上 (注意)
-        25, "#FFFF00", // 25以上 (警戒)
-        28, "#FFA500", // 28以上 (厳重警戒)
-        31, "#FF4500", // 31以上 (危険)
-        33, "#FF0000", // 33以上 (極めて危険)
-        35, "#800080"  // 35以上 (災害級の危険)
-      ]
-    ],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    "circle-color": createMapLibreColorExpression() as any,
     "circle-stroke-width": 2,
-    "circle-stroke-color": "#ffffff",
+    "circle-stroke-color": CIRCLE_STROKE_COLOR,
     "circle-opacity": 0.8,
   },
 };
@@ -315,20 +303,7 @@ export default function WbgtMapCore({
               <p
                 className="text-2xl font-bold"
                 style={{
-                  color:
-                    popupInfo.riskLevel === translations.disaster
-                      ? "#800080"
-                      : popupInfo.riskLevel === translations.extreme
-                      ? "#FF0000"
-                      : popupInfo.riskLevel === translations.danger
-                      ? "#FF4500"
-                      : popupInfo.riskLevel === translations.caution
-                      ? "#FFA500"
-                      : popupInfo.riskLevel === translations.warning
-                      ? "#FFFF00"
-                      : popupInfo.riskLevel === translations.attention
-                      ? "#00FFFF"
-                      : "#0000FF",
+                  color: getWbgtLevelInfo(popupInfo.wbgt).color,
                 }}
               >
                 {popupInfo.wbgt}
