@@ -71,7 +71,9 @@ async function fetchCombinedWbgtCsv(): Promise<string> {
   return combinedCsvText;
 }
 
-function filterCsvDataByDateRange(csvText: string, days: number): string {
+function filterCsvDataByDateRange(csvText: string, days: number): string;
+function filterCsvDataByDateRange(csvText: string, startDate: dayjs.Dayjs, endDate: dayjs.Dayjs): string;
+function filterCsvDataByDateRange(csvText: string, startOrDays: number | dayjs.Dayjs, endDate?: dayjs.Dayjs): string {
   const lines = csvText.trim().split(/\r?\n/);
   if (lines.length < 2) {
     return csvText; // ヘッダーしかない場合はそのまま返す
@@ -80,8 +82,18 @@ function filterCsvDataByDateRange(csvText: string, days: number): string {
   const header = lines[0];
   const dataRows = lines.slice(1);
 
-  // 現在の日付からdays日前を計算
-  const cutoffDate = dayjs().subtract(days, "days").startOf("day");
+  let cutoffStartDate: dayjs.Dayjs;
+  let cutoffEndDate: dayjs.Dayjs;
+
+  if (typeof startOrDays === 'number') {
+    // days指定の場合
+    cutoffStartDate = dayjs().subtract(startOrDays, "days").startOf("day");
+    cutoffEndDate = dayjs().endOf("day");
+  } else {
+    // startDateとendDate指定の場合
+    cutoffStartDate = startOrDays.startOf("day");
+    cutoffEndDate = (endDate as dayjs.Dayjs).endOf("day");
+  }
 
   // フィルタリングされたデータ行を収集
   const filteredRows: string[] = [];
@@ -97,8 +109,9 @@ function filterCsvDataByDateRange(csvText: string, days: number): string {
     const rowDate = dayjs(dateStr, "YYYY-MM-DD");
     if (!rowDate.isValid()) continue;
 
-    // 過去days日以内かチェック
-    if (rowDate.isAfter(cutoffDate) || rowDate.isSame(cutoffDate, "day")) {
+    // 指定期間内かチェック
+    if ((rowDate.isAfter(cutoffStartDate) || rowDate.isSame(cutoffStartDate, "day")) &&
+        (rowDate.isBefore(cutoffEndDate) || rowDate.isSame(cutoffEndDate, "day"))) {
       filteredRows.push(row);
     }
   }

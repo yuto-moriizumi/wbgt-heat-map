@@ -9,6 +9,7 @@ export default async function Home({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+
   // サーバーサイドでWBGTデータを取得
   let wbgtBundle: WbgtDataResult;
   try {
@@ -40,6 +41,7 @@ export default async function Home({
     warning: tMap("warning"),
     attention: tMap("attention"),
     safe: tMap("safe"),
+    dailyMaxLabel: tMap("dailyMaxLabel"),
   };
 
   // 凡例の項目を定義
@@ -71,7 +73,10 @@ export default async function Home({
           wbgtData={wbgtBundle.geojson}
           timePoints={wbgtBundle.timePoints}
           translations={mapTranslations}
+          showDailyMax={false}
         />
+
+        {/* 日最高値表示チェックボックス - WbgtMapコンポーネント内に統合 */}
 
         {/* 凡例 */}
         <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">

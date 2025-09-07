@@ -39,7 +39,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
     let hasAny = false;
     for (let col = 2; col < row.length; col++) {
       const v = row[col];
-      if (v !== undefined && v !== "" && !isNaN(Number(v))) {
+      if (v !== undefined && v !== "" && v !== null && !isNaN(Number(v))) {
         hasAny = true;
         break;
       }
@@ -75,7 +75,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
 
       const value = row[stationIndex + 2]; // Date, Timeの後の列
 
-      if (value && value !== "" && !isNaN(Number(value))) {
+      if (value !== undefined && value !== "" && value !== null && !isNaN(Number(value))) {
         let wbgt = Number(value);
 
         // WBGTが10倍されている場合の調整
@@ -97,13 +97,29 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
       continue;
     }
 
+    // 日付ごとの最高値を計算
+    const maxWbgtByDate: { [date: string]: number } = {};
+    timeSeriesData.forEach(data => {
+      const date = data.time.split(' ')[0]; // YYYY-MM-DD HH:mm から日付部分を抽出
+      if (!maxWbgtByDate[date] || data.wbgt > maxWbgtByDate[date]) {
+        maxWbgtByDate[date] = data.wbgt;
+      }
+    });
+
+    // valueByDateを作成
+    const valueByDate = Object.entries(maxWbgtByDate).map(([date, wbgt]) => ({
+      date,
+      wbgt,
+    }));
+
     features.push({
       type: "Feature" as const,
       id: stationId, // トップレベルidを追加
       properties: {
         id: stationId,
         name: station.name,
-        timeSeriesData: timeSeriesData,
+        valueByDateTime: timeSeriesData,
+        valueByDate: valueByDate,
       },
       geometry: {
         type: "Point" as const,

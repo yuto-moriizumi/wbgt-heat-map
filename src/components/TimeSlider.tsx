@@ -28,6 +28,8 @@ interface TimeSliderProps {
     /** 次へボタンのテキスト */
     next?: string;
   };
+  /** 日最高値モードかどうか */
+  isDailyMaxMode?: boolean;
 }
 
 export default function TimeSlider({
@@ -43,9 +45,12 @@ export default function TimeSlider({
     previous: "前へ",
     next: "次へ",
   },
+  isDailyMaxMode = false,
 }: TimeSliderProps) {
   // 自動再生機能
   useEffect(() => {
+    // 日最高値モードでは自動再生を無効化
+    if (isDailyMaxMode) return;
     if (!isPlaying || timePoints.length <= 1) return;
 
     const interval = setInterval(() => {
@@ -59,6 +64,7 @@ export default function TimeSlider({
     timePoints.length,
     playbackSpeed,
     onTimeChange,
+    isDailyMaxMode,
   ]);
 
   const handlePrevious = useCallback(() => {
@@ -86,8 +92,13 @@ export default function TimeSlider({
 
   const formatTime = (timeObj: Dayjs): string => {
     try {
-      // DayjsオブジェクトをM/D HH:mm形式でフォーマット
-      return timeObj.format('M/D HH:mm');
+      if (isDailyMaxMode) {
+        // 日最高値モードでは日付のみ表示
+        return timeObj.format('YYYY/MM/DD');
+      } else {
+        // 通常モードではM/D HH:mm形式
+        return timeObj.format('M/D HH:mm');
+      }
     } catch {
       return timeObj.toString(); // エラー時はtoStringで返す
     }
@@ -96,7 +107,9 @@ export default function TimeSlider({
   return (
     <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-80">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-700">時刻選択</h3>
+        <h3 className="text-sm font-medium text-gray-700">
+          {isDailyMaxMode ? "日付選択" : "時刻選択"}
+        </h3>
         <div className="text-xs text-gray-500">
           {currentTimeIndex + 1} / {timePoints.length}
         </div>
@@ -128,32 +141,34 @@ export default function TimeSlider({
         />
       </div>
 
-      {/* コントロールボタン */}
-      <div className="flex items-center justify-center gap-2">
-        <button
-          onClick={handlePrevious}
-          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-          title={translations.previous}
-        >
-          <SkipBack size={16} className="text-gray-700" />
-        </button>
+      {/* コントロールボタン - 日最高値モードでは非表示 */}
+      {!isDailyMaxMode && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={handlePrevious}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+            title={translations.previous}
+          >
+            <SkipBack size={16} className="text-gray-700" />
+          </button>
 
-        <button
-          onClick={onPlayToggle}
-          className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-          title={isPlaying ? translations.pause : translations.play}
-        >
-          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-        </button>
+          <button
+            onClick={onPlayToggle}
+            className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+            title={isPlaying ? translations.pause : translations.play}
+          >
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+          </button>
 
-        <button
-          onClick={handleNext}
-          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-          title={translations.next}
-        >
-          <SkipForward size={16} className="text-gray-700" />
-        </button>
-      </div>
+          <button
+            onClick={handleNext}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+            title={translations.next}
+          >
+            <SkipForward size={16} className="text-gray-700" />
+          </button>
+        </div>
+      )}
 
       <style jsx>{`
         .slider::-webkit-slider-thumb {

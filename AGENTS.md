@@ -4,8 +4,13 @@
 
 1. **Typecheck** `npm run typecheck`
 1. **Lint** `npm run lint`
-1. **Browser test** Verify the functionality using Playwright MCP. Don't start app with `npm run dev`. Developer does it instead of you.
+1. **Browser test** Verify the functionality using Playwright MCP.
 
 ## Where is documentation
 
 Project documentation is stored in the `docs` directory in Markdown files.
+
+## Don'ts
+
+- `page.tsx` must be a Server Component. Do not add `"use client"` directive.
+- Do not start the app with `npm run dev`. It must be already running.

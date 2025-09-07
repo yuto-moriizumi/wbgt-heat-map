@@ -1,7 +1,8 @@
 {
   "HomePage": {
     "title": "全国暑さ指数(WBGT)マップ",
-    "description": "全国の暑さ指数（WBGT）の実況と予測を地図上で確認できます。"
+    "description": "全国の暑さ指数（WBGT）の実況と予測を地図上で確認できます。",
+    "showDailyMax": "日の最高値を表示"
   },
   "WbgtMap": {
     "stationName": "観測地点名",
@@ -14,6 +15,7 @@
     "caution": "厳重警戒(28~)",
     "warning": "警戒(25~)",
     "attention": "注意(21~)",
-    "safe": "ほぼ安全(~21)"
+    "safe": "ほぼ安全(~21)",
+    "dailyMaxLabel": "本日の最高値"
   }
 }

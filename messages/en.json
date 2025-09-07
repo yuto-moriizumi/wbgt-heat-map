@@ -1,7 +1,8 @@
 {
   "HomePage": {
     "title": "WBGT Heat Map",
-    "description": "Nationwide Wet Bulb Globe Temperature (WBGT) Heat Map for Japan"
+    "description": "Nationwide Wet Bulb Globe Temperature (WBGT) Heat Map for Japan",
+    "showDailyMax": "Show daily max WBGT"
   },
   "WbgtMap": {
     "stationName": "Station Name",
@@ -14,6 +15,7 @@
     "caution": "Caution (28+)",
     "warning": "Warning (25+)",
     "attention": "Attention (21+)",
-    "safe": "Almost safe (<21)"
+    "safe": "Almost safe (<21)",
+    "dailyMaxLabel": "Daily maximum"
   }
 }

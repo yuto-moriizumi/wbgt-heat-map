@@ -40,15 +40,19 @@ const wbgtLayer: LayerProps = {
   paint: {
     "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 4, 10, 8, 15, 12],
     "circle-color": [
-      "step",
-      ["feature-state", "wbgt"],
-      "#0000FF", // デフォルト (ほぼ安全)
-      21, "#00FFFF", // 21以上 (注意)
-      25, "#FFFF00", // 25以上 (警戒)
-      28, "#FFA500", // 28以上 (厳重警戒)
-      31, "#FF4500", // 31以上 (危険)
-      33, "#FF0000", // 33以上 (極めて危険)
-      35, "#800080"  // 35以上 (災害級の危険)
+      "case",
+      ["==", ["feature-state", "wbgt"], 0], "#808080", // 0 (データなし) の場合はグレー
+      [
+        "step",
+        ["feature-state", "wbgt"],
+        "#0000FF", // デフォルト (ほぼ安全)
+        21, "#00FFFF", // 21以上 (注意)
+        25, "#FFFF00", // 25以上 (警戒)
+        28, "#FFA500", // 28以上 (厳重警戒)
+        31, "#FF4500", // 31以上 (危険)
+        33, "#FF0000", // 33以上 (極めて危険)
+        35, "#800080"  // 35以上 (災害級の危険)
+      ]
     ],
     "circle-stroke-width": 2,
     "circle-stroke-color": "#ffffff",
@@ -72,7 +76,9 @@ interface WbgtMapCoreProps {
     warning: string;
     attention: string;
     safe: string;
+    dailyMaxLabel: string;
   };
+  showDailyMax?: boolean;
 }
 
 export default function WbgtMapCore({
@@ -80,6 +86,7 @@ export default function WbgtMapCore({
   currentTimeIndex,
   timePoints,
   translations,
+  showDailyMax = false,
 }: WbgtMapCoreProps) {
   const [popupInfo, setPopupInfo] = useState<{
     longitude: number;
@@ -95,6 +102,7 @@ export default function WbgtMapCore({
   // WBGTの値から翻訳されたリスクレベルを取得する関数
   const getTranslatedRiskLevel = useCallback(
     (wbgt: number): string => {
+      if (wbgt === 0) return translations.safe; // 0は「ほぼ安全」として扱う
       if (wbgt >= 35) return translations.disaster;
       if (wbgt >= 33) return translations.extreme;
       if (wbgt >= 31) return translations.danger;
@@ -112,43 +120,37 @@ export default function WbgtMapCore({
       const { features } = event;
       if (features && features.length > 0) {
         const feature = features[0];
-        const { name, id, timeSeriesData } = feature.properties;
+        const { name, id } = feature.properties;
+
         const map = mapRef.current?.getMap();
         if (map) {
-          const featureState = map.getFeatureState({
-            source: "wbgt-points",
-            id: id,
-          });
-          const wbgt =
-            featureState?.wbgt ||
-            (timeSeriesData && timeSeriesData.length > 0
-              ? timeSeriesData[0].wbgt
-              : 0);
+            const featureState = map.getFeatureState({
+              source: "wbgt-points",
+              id: id,
+            });
+            
+            const wbgt = featureState?.wbgt ?? 0;
+            const time = featureState?.time ?? (timePoints[0] ? timePoints[0].format('YYYY-MM-DD') : "");
 
-          const time =
-            featureState?.time ||
-            (timeSeriesData && timeSeriesData.length > 0
-              ? timeSeriesData[0].time
-              : "");
-          const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
-          setPopupInfo({
-            longitude: event.lngLat.lng,
-            latitude: event.lngLat.lat,
-            name,
-            wbgt,
-            riskLevel: translatedRiskLevel,
-            time,
-            id,
-          });
+            const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
+            setPopupInfo({
+              longitude: event.lngLat.lng,
+              latitude: event.lngLat.lat,
+              name,
+              wbgt,
+              riskLevel: translatedRiskLevel,
+              time,
+              id,
+            });
         }
       } else {
         setPopupInfo(null);
       }
     },
-    [getTranslatedRiskLevel]
+    [getTranslatedRiskLevel, timePoints]
   );
 
-  // ルックアップマップ: stationId -> timeSeriesData[]
+  // ルックアップマップ: stationId -> valueByDateTime[]
   const timeSeriesLookup = (() => {
     const lookup = new Map<
       string,
@@ -156,11 +158,12 @@ export default function WbgtMapCore({
     >();
     wbgtData.features.forEach((feature) => {
       const id = feature.properties?.id;
-      const timeSeriesData = feature.properties?.timeSeriesData as
+      const valueByDateTime = feature.properties?.valueByDateTime as
         | { time: string; wbgt: number }[]
         | undefined;
-      if (id && timeSeriesData) {
-        lookup.set(id, timeSeriesData);
+
+      if (id && valueByDateTime) {
+        lookup.set(id, valueByDateTime);
       }
     });
     return lookup;
@@ -171,25 +174,24 @@ export default function WbgtMapCore({
     (map: MapLibreMap, time: string) => {
       timeSeriesLookup.forEach(
         (
-          timeSeriesData: {
+          valueByDateTime: {
             time: string;
             wbgt: number;
           }[],
           stationId: string
         ) => {
-          const dataForTime = timeSeriesData.find((data) => data.time === time);
-          if (dataForTime) {
-            map.setFeatureState(
-              {
-                source: "wbgt-points",
-                id: stationId,
-              },
-              {
-                wbgt: dataForTime.wbgt,
-                time: dataForTime.time,
-              }
-            );
-          }
+          const dataForTime = valueByDateTime.find((data) => data.time === time);
+          const wbgt = dataForTime?.wbgt ?? 0;
+          map.setFeatureState(
+            {
+              source: "wbgt-points",
+              id: stationId,
+            },
+            {
+              wbgt: wbgt,
+              time: time,
+            }
+          );
         }
       );
     },
@@ -201,40 +203,72 @@ export default function WbgtMapCore({
     if (!mapRef.current || timePoints.length === 0) return;
 
     const map = mapRef.current.getMap();
-    const currentTime = timePoints[currentTimeIndex].format("YYYY/MM/DD HH:mm");
-    applyFeatureState(map, currentTime);
-  }, [currentTimeIndex, timePoints, applyFeatureState, timeSeriesLookup]);
+
+    // 日最高値モードの場合は特別処理
+    if (showDailyMax) {
+      const targetDate = timePoints[currentTimeIndex]?.format('YYYY-MM-DD') || '';
+      if (targetDate) {
+        wbgtData.features.forEach((feature) => {
+          const id = feature.properties?.id;
+          const valueByDate = feature.properties?.valueByDate;
+          if (id && valueByDate && Array.isArray(valueByDate)) {
+            const dataForDate = valueByDate.find((item: { date: string; wbgt: number }) => item.date === targetDate);
+            const wbgt = dataForDate?.wbgt ?? 0;
+            map.setFeatureState(
+              { source: "wbgt-points", id: id },
+              { wbgt: wbgt, time: targetDate }
+            );
+          }
+        });
+      }
+    } else {
+      // 通常モード
+      const currentTime = timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
+      if (currentTime) {
+        applyFeatureState(map, currentTime);
+      }
+    }
+  }, [currentTimeIndex, timePoints, applyFeatureState, timeSeriesLookup, showDailyMax, wbgtData]);
 
   // マップロード時の初期feature-state設定
   const handleMapLoad = useCallback(
     (event: { target: MapLibreMap }) => {
       const map = event.target;
-      const currentTime =
-        timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm");
 
       const applyInitialState = () => {
         if (map.getSource("wbgt-points")) {
-          if (currentTime) {
-            applyFeatureState(map, currentTime);
+          if (showDailyMax) {
+            const targetDate = timePoints[currentTimeIndex]?.format('YYYY-MM-DD') || '';
+            if (targetDate) {
+              wbgtData.features.forEach((feature) => {
+                const id = feature.properties?.id;
+                const valueByDate = feature.properties?.valueByDate;
+                if (id && valueByDate && Array.isArray(valueByDate)) {
+                  const dataForDate = valueByDate.find((item: { date: string; wbgt: number }) => item.date === targetDate);
+                  const wbgt = dataForDate?.wbgt ?? 0;
+                  map.setFeatureState(
+                    { source: "wbgt-points", id: id },
+                    { wbgt: wbgt, time: targetDate }
+                  );
+                }
+              });
+            }
           } else {
-            // 初期状態ではtimeSeriesDataの最初の要素を使用
-            wbgtData.features.forEach((feature) => {
-              const id = feature.properties?.id;
-              const timeSeriesData = feature.properties?.timeSeriesData;
-              if (id && timeSeriesData && timeSeriesData.length > 0) {
-                const initialData = timeSeriesData[0];
-                 map.setFeatureState(
-                   {
-                     source: "wbgt-points",
-                     id: id,
-                   },
-                   {
-                     wbgt: initialData.wbgt,
-                     time: initialData.time,
-                   }
-                 );
-              }
-            });
+            const currentTime = timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
+            if (currentTime) {
+              applyFeatureState(map, currentTime);
+            } else {
+              // 初期状態（データがまだない場合）
+              wbgtData.features.forEach((feature) => {
+                const id = feature.properties?.id;
+                if (id) {
+                  map.setFeatureState(
+                    { source: "wbgt-points", id: id },
+                    { wbgt: 0, time: "" }
+                  );
+                }
+              });
+            }
           }
         }
       };
@@ -245,7 +279,7 @@ export default function WbgtMapCore({
         map.on("style.load", applyInitialState);
       }
     },
-    [timePoints, currentTimeIndex, applyFeatureState, wbgtData]
+    [timePoints, currentTimeIndex, applyFeatureState, wbgtData, showDailyMax]
   );
 
   return (
@@ -299,17 +333,23 @@ export default function WbgtMapCore({
               >
                 {popupInfo.wbgt}
               </p>
-              <p className="text-sm text-black font-medium">
-                {popupInfo.riskLevel}
-              </p>
-              {popupInfo.time && (
-                <p className="text-xs text-gray-600 mt-1">
-                  時刻: {popupInfo.time}
-                </p>
-              )}
-              <p className="text-xs text-gray-700 mt-1">
-                {translations.stationName}: {popupInfo.id}
-              </p>
+               <p className="text-sm text-black font-medium">
+                 {popupInfo.riskLevel}
+               </p>
+               {showDailyMax ? (
+                 <p className="text-xs text-gray-600 mt-1">
+                   {translations.dailyMaxLabel}
+                 </p>
+               ) : (
+                 popupInfo.time && (
+                   <p className="text-xs text-gray-600 mt-1">
+                     時刻: {popupInfo.time}
+                   </p>
+                 )
+               )}
+               <p className="text-xs text-gray-700 mt-1">
+                 {translations.stationName}: {popupInfo.id}
+               </p>
             </div>
           </Popup>
         )}

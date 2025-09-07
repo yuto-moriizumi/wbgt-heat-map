@@ -13,10 +13,16 @@ export interface TimeSeriesData {
   wbgt: number;
 }
 
+export interface DailyMaxData {
+  date: string;
+  wbgt: number;
+}
+
 export interface WbgtProperties {
   id: string;
   name: string;
-  timeSeriesData: TimeSeriesData[];
+  valueByDateTime: TimeSeriesData[];
+  valueByDate: DailyMaxData[];
 }
 
 export type WbgtGeoJSON = GeoJSON.FeatureCollection<

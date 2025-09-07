@@ -2,7 +2,13 @@ import { readFileSync } from "fs";
 import path from "path";
 import { Station } from "./types";
 
+// サーバー専用関数としてマーク
 export async function getStations(): Promise<Station[]> {
+  // この関数はサーバーサイドでのみ動作します
+  if (typeof window !== 'undefined') {
+    throw new Error('getStations can only be called on the server side');
+  }
+
   try {
     const stationsPath = path.join(
       process.cwd(),
