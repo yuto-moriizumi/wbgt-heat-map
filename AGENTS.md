@@ -4,7 +4,7 @@
 
 1. **Typecheck** `npm run typecheck`
 1. **Lint** `npm run lint`
-1. **Browser test** After completing a task, verify the functionality using Playwright MCP. Don't start app with `npm run dev`. Developer does it instead of you.
+1. **Browser test** Verify the functionality using Playwright MCP. Don't start app with `npm run dev`. Developer does it instead of you.
 
 ## Where is documentation
 

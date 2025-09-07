@@ -1,4 +1,5 @@
-import { fetchWbgtData, WbgtDataResult } from "@/lib/wbgt-data";
+import { fetchWbgtData } from "@/lib/fetch-wbgt-data";
+import { WbgtDataResult } from "@/lib/types";
 import WbgtMap from "@/components/WbgtMap";
 import { getTranslations } from "next-intl/server";
 
