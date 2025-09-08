@@ -61,8 +61,93 @@ describe('fetchWbgtData', () => {
     expect(firstFeature.geometry.type).toBe('Point')
     expect(firstFeature.properties.id).toBeTruthy()
     expect(firstFeature.properties.name).toBeTruthy()
-    expect(firstFeature.properties.valueByDateTime).toBeDefined()
-    expect(firstFeature.properties.valueByDate).toBeDefined()
+    
+    // Calculate expected values for current month (station 11001)
+    const currentMonth = dayjs().month() + 1 // dayjs months are 0-indexed
+    const expectedBaseTemp = 20.0 + (currentMonth * 0.8)
+    const expectedVariation = 2.0 + (currentMonth % 3)
+    
+    // Expected values for station 11001 (first station in CSV)
+    const expectedValues = [
+      expectedBaseTemp, // Day 1, 17:00
+      expectedBaseTemp - 0.7, // Day 1, 18:00
+      expectedBaseTemp + expectedVariation, // Day 2, 17:00
+      expectedBaseTemp + expectedVariation - 0.7 // Day 2, 18:00
+    ]
+    
+    // valueByDateTime detailed validation
+    const valueByDateTime = firstFeature.properties.valueByDateTime
+    expect(Array.isArray(valueByDateTime)).toBe(true)
+    expect(valueByDateTime.length).toBeGreaterThan(0)
+    
+    // Check each valueByDateTime entry structure and values
+    valueByDateTime.forEach((entry, index) => {
+      expect(entry).toHaveProperty('time')
+      expect(entry).toHaveProperty('wbgt')
+      expect(typeof entry.time).toBe('string')
+      expect(typeof entry.wbgt).toBe('number')
+      expect(entry.time).toMatch(/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/) // YYYY/MM/DD HH:mm format
+      
+      // Check if this entry corresponds to current month data
+      const entryMonth = parseInt(entry.time.split('/')[1], 10)
+      if (entryMonth === currentMonth && index < expectedValues.length) {
+        expect(entry.wbgt).toBe(expectedValues[index])
+      }
+    })
+    
+    // valueByDate detailed validation
+    const valueByDate = firstFeature.properties.valueByDate
+    expect(Array.isArray(valueByDate)).toBe(true)
+    expect(valueByDate.length).toBeGreaterThan(0)
+    
+    // Check each valueByDate entry structure
+    valueByDate.forEach(entry => {
+      expect(entry).toHaveProperty('date')
+      expect(entry).toHaveProperty('wbgt')
+      expect(typeof entry.date).toBe('string')
+      expect(typeof entry.wbgt).toBe('number')
+      expect(entry.date).toMatch(/^\d{4}\/\d{2}\/\d{2}$/) // YYYY/MM/DD format
+      
+      // Check specific expected values for current month
+      const entryMonth = parseInt(entry.date.split('/')[1], 10)
+      const entryDay = parseInt(entry.date.split('/')[2], 10)
+      
+      if (entryMonth === currentMonth) {
+        if (entryDay === 1) {
+          // Day 1 max should be the higher of the two values: expectedBaseTemp vs (expectedBaseTemp - 0.7)
+          expect(entry.wbgt).toBe(expectedBaseTemp)
+        } else if (entryDay === 2) {
+          // Day 2 max should be the higher of: (expectedBaseTemp + expectedVariation) vs (expectedBaseTemp + expectedVariation - 0.7)
+          expect(entry.wbgt).toBe(expectedBaseTemp + expectedVariation)
+        }
+      }
+    })
+    
+    // Verify that valueByDate contains daily maximum values
+    const dateTimeByDate: { [date: string]: number[] } = {}
+    valueByDateTime.forEach(entry => {
+      const date = entry.time.split(' ')[0] // Keep YYYY/MM/DD format
+      if (!dateTimeByDate[date]) {
+        dateTimeByDate[date] = []
+      }
+      dateTimeByDate[date].push(entry.wbgt)
+    })
+    
+    // Check that each date in valueByDate has the maximum value from valueByDateTime
+    valueByDate.forEach(dailyEntry => {
+      const valuesForDate = dateTimeByDate[dailyEntry.date]
+      expect(valuesForDate).toBeDefined()
+      const maxValueForDate = Math.max(...valuesForDate)
+      expect(dailyEntry.wbgt).toBe(maxValueForDate)
+    })
+    
+    // Verify data consistency between valueByDateTime and valueByDate
+    const uniqueDatesFromDateTime = new Set(valueByDateTime.map(entry => entry.time.split(' ')[0]))
+    const datesFromDaily = new Set(valueByDate.map(entry => entry.date))
+    expect(uniqueDatesFromDateTime.size).toBe(datesFromDaily.size)
+    uniqueDatesFromDateTime.forEach(date => {
+      expect(datesFromDaily.has(date)).toBe(true)
+    })
   })
 
   it('should combine CSV data from multiple months correctly', async () => {
