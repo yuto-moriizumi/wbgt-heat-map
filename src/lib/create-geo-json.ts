@@ -117,7 +117,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
         properties: {
           id: trimmedStationId,
           name: station.name,
-          valueByDateTime: timeSeriesData,
+          valueByDateTime: timeSeriesData.map(data => data.wbgt),
           valueByDate: valueByDate,
         },
         geometry: {

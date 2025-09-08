@@ -2,7 +2,7 @@ import { fetchWbgtData } from "@/lib/fetch-wbgt-data";
 import { WbgtDataResult } from "@/lib/types";
 import WbgtMap from "@/components/WbgtMap";
 import { getTranslations } from "next-intl/server";
-import { createLegendItems } from "@/lib/wbgt-config";
+import { LEGEND_ITEMS } from "@/lib/wbgt-config";
 
 export default async function Home({
   params,
@@ -46,7 +46,7 @@ export default async function Home({
   };
 
   // 凡例の項目を統一定義から生成
-  const legendItems = createLegendItems().map(item => ({
+  const legendItems = LEGEND_ITEMS.map((item: { color: string; level: string }) => ({
     color: item.color,
     label: mapTranslations[item.level as keyof typeof mapTranslations]
   }));
@@ -80,7 +80,7 @@ export default async function Home({
             {mapTranslations.legendTitle}
           </h4>
           <div className="space-y-1 text-xs">
-            {legendItems.map((item, index) => (
+            {legendItems.map((item: { color: string; label: string }, index: number) => (
               <div key={index} className="flex items-center">
                 <div
                   className="w-4 h-4 rounded-full mr-2"

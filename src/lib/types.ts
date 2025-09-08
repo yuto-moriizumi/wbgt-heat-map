@@ -11,7 +11,7 @@ interface DailyMaxData {
 interface WbgtProperties {
   id: string;
   name: string;
-  valueByDateTime: TimeSeriesData[];
+  valueByDateTime: number[];
   valueByDate: DailyMaxData[];
 }
 

@@ -5,9 +5,10 @@ import TimeSlider from "./TimeSlider";
 import WbgtMapCore from "./WbgtMapCore";
 import DailyMaxToggle from "./DailyMaxToggle";
 import dayjs from "@/lib/dayjs";
+import { WbgtGeoJSON } from "@/lib/types";
 
 interface WbgtMapProps {
-  wbgtData: GeoJSON.FeatureCollection;
+  wbgtData: WbgtGeoJSON;
   timePoints: string[];
   translations: {
     stationName: string;
@@ -41,10 +42,10 @@ export default function WbgtMap({
   const parsedTimePoints = useMemo(() => {
     if (showDailyMax) {
       // 日最高モードでは、stateに保持されているISO文字列をDayjsオブジェクトに変換
-      return timePoints.map(iso => dayjs(iso).tz("Asia/Tokyo"));
+      return timePoints.map((iso) => dayjs(iso).tz("Asia/Tokyo"));
     }
     // 通常モード
-    return initialTimePoints.map(iso => dayjs(iso).tz("Asia/Tokyo"));
+    return initialTimePoints.map((iso) => dayjs(iso).tz("Asia/Tokyo"));
   }, [timePoints, initialTimePoints, showDailyMax]);
 
   const effectiveTimePoints = parsedTimePoints;
@@ -67,29 +68,36 @@ export default function WbgtMap({
   }, []);
 
   // showDailyMax変更ハンドラー
-  const handleShowDailyMaxChange = useCallback((show: boolean) => {
-    setShowDailyMax(show);
-    setCurrentTimeIndex(0); // インデックスをリセット
+  const handleShowDailyMaxChange = useCallback(
+    (show: boolean) => {
+      setShowDailyMax(show);
+      setCurrentTimeIndex(0); // インデックスをリセット
 
-    if (show) {
-      // 日最高値モード: valueByDateから日付リストを生成
-      const dateSet = new Set<string>();
-      initialWbgtData.features.forEach(feature => {
-        if (feature.properties?.valueByDate) {
-          feature.properties.valueByDate.forEach((item: { date: string; wbgt: number }) => {
-            if (item.date && item.wbgt > 0) {
-              dateSet.add(item.date);
-            }
-          });
-        }
-      });
-      const sortedDates = Array.from(dateSet).sort().reverse();
-      setTimePoints(sortedDates.map(date => dayjs(date).startOf('day').toISOString()));
-    } else {
-      // 通常モード: 元の時間リストに戻す
-      setTimePoints(initialTimePoints);
-    }
-  }, [initialWbgtData, initialTimePoints]);
+      if (show) {
+        // 日最高値モード: valueByDateから日付リストを生成
+        const dateSet = new Set<string>();
+        initialWbgtData.features.forEach((feature) => {
+          if (feature.properties?.valueByDate) {
+            feature.properties.valueByDate.forEach(
+              (item: { date: string; wbgt: number }) => {
+                if (item.date && item.wbgt > 0) {
+                  dateSet.add(item.date);
+                }
+              }
+            );
+          }
+        });
+        const sortedDates = Array.from(dateSet).sort().reverse();
+        setTimePoints(
+          sortedDates.map((date) => dayjs(date).startOf("day").toISOString())
+        );
+      } else {
+        // 通常モード: 元の時間リストに戻す
+        setTimePoints(initialTimePoints);
+      }
+    },
+    [initialWbgtData, initialTimePoints]
+  );
 
   return (
     <div className="relative w-full h-full">

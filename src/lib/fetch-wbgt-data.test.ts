@@ -81,17 +81,12 @@ describe('fetchWbgtData', () => {
     expect(valueByDateTime.length).toBeGreaterThan(0)
     
     // Check each valueByDateTime entry structure and values
-    valueByDateTime.forEach((entry, index) => {
-      expect(entry).toHaveProperty('time')
-      expect(entry).toHaveProperty('wbgt')
-      expect(typeof entry.time).toBe('string')
-      expect(typeof entry.wbgt).toBe('number')
-      expect(entry.time).toMatch(/^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/) // YYYY/MM/DD HH:mm format
+    valueByDateTime.forEach((wbgt, index) => {
+      expect(typeof wbgt).toBe('number')
       
       // Check if this entry corresponds to current month data
-      const entryMonth = parseInt(entry.time.split('/')[1], 10)
-      if (entryMonth === currentMonth && index < expectedValues.length) {
-        expect(entry.wbgt).toBe(expectedValues[index])
+      if (index < expectedValues.length) {
+        expect(wbgt).toBe(expectedValues[index])
       }
     })
     
@@ -125,12 +120,14 @@ describe('fetchWbgtData', () => {
     
     // Verify that valueByDate contains daily maximum values
     const dateTimeByDate: { [date: string]: number[] } = {}
-    valueByDateTime.forEach(entry => {
-      const date = entry.time.split(' ')[0] // Keep YYYY/MM/DD format
+    result.timePoints.forEach((timePointIso, index) => {
+      const timePoint = dayjs(timePointIso)
+      const date = timePoint.format('YYYY/MM/DD')
       if (!dateTimeByDate[date]) {
         dateTimeByDate[date] = []
       }
-      dateTimeByDate[date].push(entry.wbgt)
+      const wbgt = valueByDateTime[index] || 0
+      dateTimeByDate[date].push(wbgt)
     })
     
     // Check that each date in valueByDate has the maximum value from valueByDateTime
@@ -142,10 +139,13 @@ describe('fetchWbgtData', () => {
     })
     
     // Verify data consistency between valueByDateTime and valueByDate
-    const uniqueDatesFromDateTime = new Set(valueByDateTime.map(entry => entry.time.split(' ')[0]))
+    const uniqueDatesFromTimePoints = new Set(result.timePoints.map(timePointIso => {
+      const timePoint = dayjs(timePointIso)
+      return timePoint.format('YYYY/MM/DD')
+    }))
     const datesFromDaily = new Set(valueByDate.map(entry => entry.date))
-    expect(uniqueDatesFromDateTime.size).toBe(datesFromDaily.size)
-    uniqueDatesFromDateTime.forEach(date => {
+    expect(uniqueDatesFromTimePoints.size).toBe(datesFromDaily.size)
+    uniqueDatesFromTimePoints.forEach(date => {
       expect(datesFromDaily.has(date)).toBe(true)
     })
   })

@@ -12,7 +12,12 @@ import {
 } from "react-map-gl/maplibre";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import type { Dayjs } from "dayjs";
-import { createMapLibreColorExpression, getWbgtLevelInfo, CIRCLE_STROKE_COLOR } from "@/lib/wbgt-config";
+import {
+  createMapLibreColorExpression,
+  getWbgtLevelInfo,
+  CIRCLE_STROKE_COLOR,
+} from "@/lib/wbgt-config";
+import { WbgtGeoJSON } from "@/lib/types";
 
 // マップスタイルをコンポーネント外に定義（ちらつき防止）
 const baseMapStyle = {
@@ -49,7 +54,7 @@ const wbgtLayer: LayerProps = {
 };
 
 interface WbgtMapCoreProps {
-  wbgtData: GeoJSON.FeatureCollection;
+  wbgtData: WbgtGeoJSON;
   currentTimeIndex: number;
   timePoints: Dayjs[];
   translations: {
@@ -112,24 +117,26 @@ export default function WbgtMapCore({
 
         const map = mapRef.current?.getMap();
         if (map) {
-            const featureState = map.getFeatureState({
-              source: "wbgt-points",
-              id: id,
-            });
-            
-            const wbgt = featureState?.wbgt ?? 0;
-            const time = featureState?.time ?? (timePoints[0] ? timePoints[0].format('YYYY-MM-DD') : "");
+          const featureState = map.getFeatureState({
+            source: "wbgt-points",
+            id: id,
+          });
 
-            const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
-            setPopupInfo({
-              longitude: event.lngLat.lng,
-              latitude: event.lngLat.lat,
-              name,
-              wbgt,
-              riskLevel: translatedRiskLevel,
-              time,
-              id,
-            });
+          const wbgt = featureState?.wbgt ?? 0;
+          const time =
+            featureState?.time ??
+            (timePoints[0] ? timePoints[0].format("YYYY-MM-DD") : "");
+
+          const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
+          setPopupInfo({
+            longitude: event.lngLat.lng,
+            latitude: event.lngLat.lat,
+            name,
+            wbgt,
+            riskLevel: translatedRiskLevel,
+            time,
+            id,
+          });
         }
       } else {
         setPopupInfo(null);
@@ -140,18 +147,20 @@ export default function WbgtMapCore({
 
   // ルックアップマップ: stationId -> valueByDateTime[]
   const timeSeriesLookup = (() => {
-    const lookup = new Map<
-      string,
-      { time: string; wbgt: number }[]
-    >();
+    const lookup = new Map<string, { time: string; wbgt: number }[]>();
     wbgtData.features.forEach((feature) => {
       const id = feature.properties?.id;
       const valueByDateTime = feature.properties?.valueByDateTime as
-        | { time: string; wbgt: number }[]
+        | number[]
         | undefined;
 
       if (id && valueByDateTime) {
-        lookup.set(id, valueByDateTime);
+        // timePointsと組み合わせて時系列データを再構築
+        const timeSeriesData = timePoints.map((timePoint, index) => ({
+          time: timePoint.format("YYYY/MM/DD HH:mm"),
+          wbgt: valueByDateTime[index] || 0,
+        }));
+        lookup.set(id, timeSeriesData);
       }
     });
     return lookup;
@@ -168,7 +177,9 @@ export default function WbgtMapCore({
           }[],
           stationId: string
         ) => {
-          const dataForTime = valueByDateTime.find((data) => data.time === time);
+          const dataForTime = valueByDateTime.find(
+            (data) => data.time === time
+          );
           const wbgt = dataForTime?.wbgt ?? 0;
           map.setFeatureState(
             {
@@ -194,13 +205,16 @@ export default function WbgtMapCore({
 
     // 日最高値モードの場合は特別処理
     if (showDailyMax) {
-      const targetDate = timePoints[currentTimeIndex]?.format('YYYY-MM-DD') || '';
+      const targetDate =
+        timePoints[currentTimeIndex]?.format("YYYY-MM-DD") || "";
       if (targetDate) {
         wbgtData.features.forEach((feature) => {
           const id = feature.properties?.id;
           const valueByDate = feature.properties?.valueByDate;
           if (id && valueByDate && Array.isArray(valueByDate)) {
-            const dataForDate = valueByDate.find((item: { date: string; wbgt: number }) => item.date === targetDate);
+            const dataForDate = valueByDate.find(
+              (item: { date: string; wbgt: number }) => item.date === targetDate
+            );
             const wbgt = dataForDate?.wbgt ?? 0;
             map.setFeatureState(
               { source: "wbgt-points", id: id },
@@ -211,12 +225,20 @@ export default function WbgtMapCore({
       }
     } else {
       // 通常モード
-      const currentTime = timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
+      const currentTime =
+        timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
       if (currentTime) {
         applyFeatureState(map, currentTime);
       }
     }
-  }, [currentTimeIndex, timePoints, applyFeatureState, timeSeriesLookup, showDailyMax, wbgtData]);
+  }, [
+    currentTimeIndex,
+    timePoints,
+    applyFeatureState,
+    timeSeriesLookup,
+    showDailyMax,
+    wbgtData,
+  ]);
 
   // マップロード時の初期feature-state設定
   const handleMapLoad = useCallback(
@@ -226,13 +248,17 @@ export default function WbgtMapCore({
       const applyInitialState = () => {
         if (map.getSource("wbgt-points")) {
           if (showDailyMax) {
-            const targetDate = timePoints[currentTimeIndex]?.format('YYYY-MM-DD') || '';
+            const targetDate =
+              timePoints[currentTimeIndex]?.format("YYYY-MM-DD") || "";
             if (targetDate) {
               wbgtData.features.forEach((feature) => {
                 const id = feature.properties?.id;
                 const valueByDate = feature.properties?.valueByDate;
                 if (id && valueByDate && Array.isArray(valueByDate)) {
-                  const dataForDate = valueByDate.find((item: { date: string; wbgt: number }) => item.date === targetDate);
+                  const dataForDate = valueByDate.find(
+                    (item: { date: string; wbgt: number }) =>
+                      item.date === targetDate
+                  );
                   const wbgt = dataForDate?.wbgt ?? 0;
                   map.setFeatureState(
                     { source: "wbgt-points", id: id },
@@ -242,7 +268,8 @@ export default function WbgtMapCore({
               });
             }
           } else {
-            const currentTime = timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
+            const currentTime =
+              timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
             if (currentTime) {
               applyFeatureState(map, currentTime);
             } else {
@@ -308,23 +335,23 @@ export default function WbgtMapCore({
               >
                 {popupInfo.wbgt}
               </p>
-               <p className="text-sm text-black font-medium">
-                 {popupInfo.riskLevel}
-               </p>
-               {showDailyMax ? (
-                 <p className="text-xs text-gray-600 mt-1">
-                   {translations.dailyMaxLabel}
-                 </p>
-               ) : (
-                 popupInfo.time && (
-                   <p className="text-xs text-gray-600 mt-1">
-                     時刻: {popupInfo.time}
-                   </p>
-                 )
-               )}
-               <p className="text-xs text-gray-700 mt-1">
-                 {translations.stationName}: {popupInfo.id}
-               </p>
+              <p className="text-sm text-black font-medium">
+                {popupInfo.riskLevel}
+              </p>
+              {showDailyMax ? (
+                <p className="text-xs text-gray-600 mt-1">
+                  {translations.dailyMaxLabel}
+                </p>
+              ) : (
+                popupInfo.time && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    時刻: {popupInfo.time}
+                  </p>
+                )
+              )}
+              <p className="text-xs text-gray-700 mt-1">
+                {translations.stationName}: {popupInfo.id}
+              </p>
             </div>
           </Popup>
         )}

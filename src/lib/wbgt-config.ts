@@ -72,7 +72,7 @@ export function getWbgtLevelInfo(wbgt: number): WbgtLevel {
   }
 
   // 閾値以上の最初のレベルを返す
-  const level = WBGT_LEVELS.find(level => wbgt >= level.threshold);
+  const level = WBGT_LEVELS.find((level) => wbgt >= level.threshold);
   return level || WBGT_LEVELS[WBGT_LEVELS.length - 1];
 }
 
@@ -95,10 +95,8 @@ export function createMapLibreColorExpression(): any[] {
   return expression;
 }
 
-// 凡例用のアイテムを生成する関数
-export function createLegendItems(): { color: string; level: string }[] {
-  return WBGT_LEVELS.map((level) => ({
-    color: level.color,
-    level: level.level,
-  }));
-}
+// 凡例用のアイテムの定数
+export const LEGEND_ITEMS = WBGT_LEVELS.map((level) => ({
+  color: level.color,
+  level: level.level,
+}));
