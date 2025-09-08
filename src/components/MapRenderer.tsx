@@ -73,7 +73,7 @@ interface WbgtMapCoreProps {
   showDailyMax?: boolean;
 }
 
-export function WbgtMapCore({
+export function MapRenderer({
   wbgtData,
   currentTimeIndex,
   timePoints,

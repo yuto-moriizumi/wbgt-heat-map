@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { TimeSlider } from "./TimeSlider";
-import { WbgtMapCore } from "./WbgtMapCore";
+import { MapRenderer } from "./MapRenderer";
 import { DailyMaxToggle } from "./DailyMaxToggle";
 import dayjs from "@/lib/dayjs";
 import { WbgtGeoJSON } from "@/lib/types";
@@ -27,7 +27,7 @@ interface WbgtMapProps {
   showDailyMax?: boolean;
 }
 
-export function WbgtMap({
+export function PageClientComponent({
   wbgtData: initialWbgtData,
   timePoints: initialTimePoints,
   translations,
@@ -44,7 +44,7 @@ export function WbgtMap({
   const dates = useMemo(() => {
     const dateSet = new Set<string>();
     times.forEach((timePoint) => {
-      const date = dayjs(timePoint).format('YYYY-MM-DD');
+      const date = dayjs(timePoint).format("YYYY-MM-DD");
       dateSet.add(date);
     });
     return Array.from(dateSet).sort().reverse();
@@ -83,17 +83,14 @@ export function WbgtMap({
   }, []);
 
   // showDailyMax変更ハンドラー
-  const handleShowDailyMaxChange = useCallback(
-    (show: boolean) => {
-      setShowDailyMax(show);
-      setCurrentTimeIndex(0); // インデックスをリセット
-    },
-    []
-  );
+  const handleShowDailyMaxChange = useCallback((show: boolean) => {
+    setShowDailyMax(show);
+    setCurrentTimeIndex(0); // インデックスをリセット
+  }, []);
 
   return (
     <div className="relative w-full h-full">
-      <WbgtMapCore
+      <MapRenderer
         wbgtData={initialWbgtData}
         currentTimeIndex={currentTimeIndex}
         translations={translations}
