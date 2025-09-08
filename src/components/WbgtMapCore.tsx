@@ -13,7 +13,6 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import type { Dayjs } from "dayjs";
 import {
   createMapLibreColorExpression,
-  getWbgtLevelInfo,
   CIRCLE_STROKE_COLOR,
 } from "@/lib/wbgt-config";
 import { WbgtGeoJSON } from "@/lib/types";
@@ -83,32 +82,6 @@ export function WbgtMapCore({
 }: WbgtMapCoreProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const mapRef = useRef<MapRef>(null);
-
-  // WBGTの値から翻訳されたリスクレベルを取得する関数
-  const getTranslatedRiskLevel = useCallback(
-    (wbgt: number): string => {
-      const levelInfo = getWbgtLevelInfo(wbgt);
-      switch (levelInfo.level) {
-        case "disaster":
-          return translations.disaster;
-        case "extreme":
-          return translations.extreme;
-        case "danger":
-          return translations.danger;
-        case "caution":
-          return translations.caution;
-        case "warning":
-          return translations.warning;
-        case "attention":
-          return translations.attention;
-        case "safe":
-          return translations.safe;
-        default:
-          return translations.safe;
-      }
-    },
-    [translations]
-  );
 
   // ルックアップマップ: stationId -> valueByDateTime[]
   const timeSeriesLookup = useMemo(() => {
@@ -223,18 +196,15 @@ export function WbgtMapCore({
 
       const wbgt = featureState?.wbgt ?? 0;
 
-      const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
-
       setPopupInfo({
         longitude: event.lngLat.lng,
         latitude: event.lngLat.lat,
         name,
         wbgt,
-        riskLevel: translatedRiskLevel,
         id,
       });
     },
-    [getTranslatedRiskLevel]
+    []
   );
 
   // currentTimeIndex変更時にfeature-stateを更新
@@ -312,6 +282,13 @@ export function WbgtMapCore({
             translations={{
               stationName: translations.stationName,
               dailyMaxLabel: translations.dailyMaxLabel,
+              disaster: translations.disaster,
+              extreme: translations.extreme,
+              danger: translations.danger,
+              caution: translations.caution,
+              warning: translations.warning,
+              attention: translations.attention,
+              safe: translations.safe,
             }}
           />
         )}

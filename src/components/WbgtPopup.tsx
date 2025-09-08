@@ -1,12 +1,12 @@
 import { Popup } from "react-map-gl/maplibre";
 import { getWbgtLevelInfo } from "@/lib/wbgt-config";
+import { useCallback } from "react";
 
 export interface PopupInfo {
   longitude: number;
   latitude: number;
   name: string;
   wbgt: number;
-  riskLevel: string;
   id: string;
 }
 
@@ -17,6 +17,13 @@ interface WbgtPopupProps {
   translations: {
     stationName: string;
     dailyMaxLabel: string;
+    disaster: string;
+    extreme: string;
+    danger: string;
+    caution: string;
+    warning: string;
+    attention: string;
+    safe: string;
   };
 }
 
@@ -26,6 +33,34 @@ export function WbgtPopup({
   showDailyMax,
   translations,
 }: WbgtPopupProps) {
+  // WBGTの値から翻訳されたリスクレベルを取得する関数
+  const getTranslatedRiskLevel = useCallback(
+    (wbgt: number): string => {
+      const levelInfo = getWbgtLevelInfo(wbgt);
+      switch (levelInfo.level) {
+        case "disaster":
+          return translations.disaster;
+        case "extreme":
+          return translations.extreme;
+        case "danger":
+          return translations.danger;
+        case "caution":
+          return translations.caution;
+        case "warning":
+          return translations.warning;
+        case "attention":
+          return translations.attention;
+        case "safe":
+          return translations.safe;
+        default:
+          return translations.safe;
+      }
+    },
+    [translations]
+  );
+
+  const translatedRiskLevel = getTranslatedRiskLevel(popupInfo.wbgt);
+
   return (
     <Popup
       longitude={popupInfo.longitude}
@@ -45,7 +80,7 @@ export function WbgtPopup({
         >
           {popupInfo.wbgt}
         </p>
-        <p className="text-sm text-black font-medium">{popupInfo.riskLevel}</p>
+        <p className="text-sm text-black font-medium">{translatedRiskLevel}</p>
         {showDailyMax && (
           <p className="text-xs text-gray-600 mt-1">
             {translations.dailyMaxLabel}
