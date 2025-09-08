@@ -12,7 +12,7 @@ export function DailyMaxToggle({
   label,
 }: DailyMaxToggleProps) {
   return (
-    <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-lg">
+    <div className="absolute top-14 right-4 bg-white p-3 rounded-lg shadow-lg">
       <label className="flex items-center gap-2">
         <input
           type="checkbox"

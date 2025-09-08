@@ -24,12 +24,15 @@ export function PageClientComponent({
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDailyMax, setShowDailyMax] = useState(initialShowDailyMax);
 
-  const translations = useMemo(() => ({
-    stationName: tMap("stationName"),
-    wbgt: tMap("wbgt"),
-    riskLevel: tMap("riskLevel"),
-    dailyMaxLabel: tMap("dailyMaxLabel"),
-  }), [tMap]);
+  const translations = useMemo(
+    () => ({
+      stationName: tMap("stationName"),
+      wbgt: tMap("wbgt"),
+      riskLevel: tMap("riskLevel"),
+      dailyMaxLabel: tMap("dailyMaxLabel"),
+    }),
+    [tMap]
+  );
 
   // times: initialTimePointsをそのまま使用
   const times = initialTimePoints;
@@ -83,38 +86,35 @@ export function PageClientComponent({
   }, []);
 
   return (
-    <div className="h-[calc(100vh-45px)] relative">
-      <div className="relative w-full h-full">
-        <MapRenderer
-          wbgtData={initialWbgtData}
-          currentTimeIndex={currentTimeIndex}
-          timePoints={effectiveTimePoints}
-          showDailyMax={showDailyMax}
-        />
+    <div className="h-[calc(100vh)]">
+      <MapRenderer
+        wbgtData={initialWbgtData}
+        currentTimeIndex={currentTimeIndex}
+        timePoints={effectiveTimePoints}
+        showDailyMax={showDailyMax}
+      />
 
-        {/* 時系列スライダー */}
-        {effectiveTimePoints.length > 1 && (
-          <div className="absolute top-4 left-4">
-            <TimeSlider
-              timePoints={effectiveTimePoints}
-              currentTimeIndex={currentTimeIndex}
-              onTimeChange={handleTimeChange}
-              isPlaying={isPlaying}
-              onPlayToggle={handlePlayToggle}
-              playbackSpeed={500}
-              isDailyMaxMode={showDailyMax}
-            />
-          </div>
-        )}
+      {/* 時系列スライダー */}
+      {effectiveTimePoints.length > 1 && (
+        <div className="absolute top-14 left-4">
+          <TimeSlider
+            timePoints={effectiveTimePoints}
+            currentTimeIndex={currentTimeIndex}
+            onTimeChange={handleTimeChange}
+            isPlaying={isPlaying}
+            onPlayToggle={handlePlayToggle}
+            playbackSpeed={500}
+            isDailyMaxMode={showDailyMax}
+          />
+        </div>
+      )}
 
-        {/* 日最高値表示チェックボックス */}
-        <DailyMaxToggle
-          showDailyMax={showDailyMax}
-          onShowDailyMaxChange={handleShowDailyMaxChange}
-          label={translations.dailyMaxLabel || "日の最高値を表示"}
-        />
-
-      </div>
+      {/* 日最高値表示チェックボックス */}
+      <DailyMaxToggle
+        showDailyMax={showDailyMax}
+        onShowDailyMaxChange={handleShowDailyMaxChange}
+        label={translations.dailyMaxLabel || "日の最高値を表示"}
+      />
     </div>
   );
 }

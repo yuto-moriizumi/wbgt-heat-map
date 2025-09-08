@@ -31,7 +31,7 @@ export default async function Home({
 
   return (
     <div className="min-h-screen">
-      <header className="bg-white shadow-sm border-b px-4 py-1">
+      <header className="absolute bg-white shadow-sm border-b px-4 py-1 top-0 left-0 z-10 w-full">
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-bold text-black">{t("title")}</h1>
           <p className="text-black text-sm">{t("description")}</p>
@@ -42,14 +42,12 @@ export default async function Home({
           )}
         </div>
       </header>
-      <div className="relative">
-        <PageClientComponent
-          wbgtData={wbgtBundle.geojson}
-          timePoints={wbgtBundle.timePoints}
-          showDailyMax={false}
-        />
-        <Legend locale={locale} />
-      </div>
+      <PageClientComponent
+        wbgtData={wbgtBundle.geojson}
+        timePoints={wbgtBundle.timePoints}
+        showDailyMax={false}
+      />
+      <Legend locale={locale} />
     </div>
   );
 }
