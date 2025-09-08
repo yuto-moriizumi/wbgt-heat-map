@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import TimeSlider from "./TimeSlider";
-import WbgtMapCore from "./WbgtMapCore";
-import DailyMaxToggle from "./DailyMaxToggle";
+import { TimeSlider } from "./TimeSlider";
+import { WbgtMapCore } from "./WbgtMapCore";
+import { DailyMaxToggle } from "./DailyMaxToggle";
 import dayjs from "@/lib/dayjs";
 import { WbgtGeoJSON } from "@/lib/types";
 
@@ -27,7 +27,7 @@ interface WbgtMapProps {
   showDailyMax?: boolean;
 }
 
-export default function WbgtMap({
+export function WbgtMap({
   wbgtData: initialWbgtData,
   timePoints: initialTimePoints,
   translations,

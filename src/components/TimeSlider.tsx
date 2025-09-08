@@ -32,7 +32,7 @@ interface TimeSliderProps {
   isDailyMaxMode?: boolean;
 }
 
-export default function TimeSlider({
+export function TimeSlider({
   timePoints,
   currentTimeIndex,
   onTimeChange,

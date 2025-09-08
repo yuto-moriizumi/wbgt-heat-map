@@ -1,6 +1,6 @@
 import { fetchWbgtData } from "@/lib/fetch-wbgt-data";
 import { WbgtDataResult } from "@/lib/types";
-import WbgtMap from "@/components/WbgtMap";
+import { WbgtMap } from "@/components/WbgtMap";
 import { getTranslations } from "next-intl/server";
 import { LEGEND_ITEMS } from "@/lib/wbgt-config";
 

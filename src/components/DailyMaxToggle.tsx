@@ -6,7 +6,7 @@ interface DailyMaxToggleProps {
   label: string;
 }
 
-export default function DailyMaxToggle({
+export function DailyMaxToggle({
   showDailyMax,
   onShowDailyMaxChange,
   label,
