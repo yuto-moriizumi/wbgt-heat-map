@@ -4,7 +4,7 @@
 
 1. **Typecheck** `npm run typecheck`
 1. **Test** `npm run test -- --run` - Ensure all tests pass after typecheck
-1. **Lint** `npm run lint`
+1. **Lint** `npm run lint` - Fix all lint issues
 1. **Unused exports** `npm run unused` and remove `export` keyword unless it's special one for Next.js
 1. **Browser test** Verify the functionality using Playwright MCP.
 

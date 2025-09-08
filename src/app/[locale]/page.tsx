@@ -2,7 +2,6 @@ import { fetchWbgtData } from "@/lib/fetch-wbgt-data";
 import { WbgtDataResult } from "@/lib/types";
 import { PageClientComponent } from "@/components/PageClientComponent";
 import { getTranslations } from "next-intl/server";
-import { LEGEND_ITEMS } from "@/lib/wbgt-config";
 
 export default async function Home({
   params,
@@ -28,30 +27,6 @@ export default async function Home({
   }
 
   const t = await getTranslations({ locale, namespace: "HomePage" });
-  const tMap = await getTranslations({ locale, namespace: "WbgtMap" });
-
-  const mapTranslations = {
-    stationName: tMap("stationName"),
-    wbgt: tMap("wbgt"),
-    riskLevel: tMap("riskLevel"),
-    legendTitle: tMap("legendTitle"),
-    disaster: tMap("disaster"),
-    extreme: tMap("extreme"),
-    danger: tMap("danger"),
-    caution: tMap("caution"),
-    warning: tMap("warning"),
-    attention: tMap("attention"),
-    safe: tMap("safe"),
-    dailyMaxLabel: tMap("dailyMaxLabel"),
-  };
-
-  // 凡例の項目を統一定義から生成
-  const legendItems = LEGEND_ITEMS.map(
-    (item: { color: string; level: string }) => ({
-      color: item.color,
-      label: mapTranslations[item.level as keyof typeof mapTranslations],
-    })
-  );
 
   return (
     <div className="min-h-screen">
@@ -66,36 +41,11 @@ export default async function Home({
           )}
         </div>
       </header>
-      <div className="h-[calc(100vh-45px)] relative">
-        <PageClientComponent
-          wbgtData={wbgtBundle.geojson}
-          timePoints={wbgtBundle.timePoints}
-          translations={mapTranslations}
-          showDailyMax={false}
-        />
-
-        {/* 日最高値表示チェックボックス - WbgtMapコンポーネント内に統合 */}
-
-        {/* 凡例 */}
-        <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">
-          <h4 className="font-bold text-sm mb-2 text-black">
-            {mapTranslations.legendTitle}
-          </h4>
-          <div className="space-y-1 text-xs">
-            {legendItems.map(
-              (item: { color: string; label: string }, index: number) => (
-                <div key={index} className="flex items-center">
-                  <div
-                    className="w-4 h-4 rounded-full mr-2"
-                    style={{ backgroundColor: item.color }}
-                  ></div>
-                  <span className="text-black font-medium">{item.label}</span>
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      </div>
+      <PageClientComponent
+        wbgtData={wbgtBundle.geojson}
+        timePoints={wbgtBundle.timePoints}
+        showDailyMax={false}
+      />
     </div>
   );
 }

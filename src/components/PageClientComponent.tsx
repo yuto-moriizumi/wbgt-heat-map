@@ -1,41 +1,51 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { TimeSlider } from "./TimeSlider";
 import { MapRenderer } from "./MapRenderer";
 import { DailyMaxToggle } from "./DailyMaxToggle";
 import dayjs from "@/lib/dayjs";
 import { WbgtGeoJSON } from "@/lib/types";
+import { LEGEND_ITEMS } from "@/lib/wbgt-config";
 
 interface WbgtMapProps {
   wbgtData: WbgtGeoJSON;
   timePoints: string[];
-  translations: {
-    stationName: string;
-    wbgt: string;
-    riskLevel: string;
-    legendTitle: string;
-    disaster: string;
-    extreme: string;
-    danger: string;
-    caution: string;
-    warning: string;
-    attention: string;
-    safe: string;
-    dailyMaxLabel: string;
-  };
   showDailyMax?: boolean;
 }
 
 export function PageClientComponent({
   wbgtData: initialWbgtData,
   timePoints: initialTimePoints,
-  translations,
   showDailyMax: initialShowDailyMax = false,
 }: WbgtMapProps) {
+  const tMap = useTranslations("WbgtMap");
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDailyMax, setShowDailyMax] = useState(initialShowDailyMax);
+
+  const translations = useMemo(() => ({
+    stationName: tMap("stationName"),
+    wbgt: tMap("wbgt"),
+    riskLevel: tMap("riskLevel"),
+    legendTitle: tMap("legendTitle"),
+    disaster: tMap("disaster"),
+    extreme: tMap("extreme"),
+    danger: tMap("danger"),
+    caution: tMap("caution"),
+    warning: tMap("warning"),
+    attention: tMap("attention"),
+    safe: tMap("safe"),
+    dailyMaxLabel: tMap("dailyMaxLabel"),
+  }), [tMap]);
+
+  const legendItems = useMemo(() => {
+    return LEGEND_ITEMS.map((item: { color: string; level: string }) => ({
+      color: item.color,
+      label: translations[item.level as keyof typeof translations],
+    }));
+  }, [translations]);
 
   // times: initialTimePointsをそのまま使用
   const times = initialTimePoints;
@@ -89,36 +99,58 @@ export function PageClientComponent({
   }, []);
 
   return (
-    <div className="relative w-full h-full">
-      <MapRenderer
-        wbgtData={initialWbgtData}
-        currentTimeIndex={currentTimeIndex}
-        translations={translations}
-        timePoints={effectiveTimePoints}
-        showDailyMax={showDailyMax}
-      />
+    <div className="h-[calc(100vh-45px)] relative">
+      <div className="relative w-full h-full">
+        <MapRenderer
+          wbgtData={initialWbgtData}
+          currentTimeIndex={currentTimeIndex}
+          translations={translations}
+          timePoints={effectiveTimePoints}
+          showDailyMax={showDailyMax}
+        />
 
-      {/* 時系列スライダー */}
-      {effectiveTimePoints.length > 1 && (
-        <div className="absolute top-4 left-4">
-          <TimeSlider
-            timePoints={effectiveTimePoints}
-            currentTimeIndex={currentTimeIndex}
-            onTimeChange={handleTimeChange}
-            isPlaying={isPlaying}
-            onPlayToggle={handlePlayToggle}
-            playbackSpeed={500}
-            isDailyMaxMode={showDailyMax}
-          />
+        {/* 時系列スライダー */}
+        {effectiveTimePoints.length > 1 && (
+          <div className="absolute top-4 left-4">
+            <TimeSlider
+              timePoints={effectiveTimePoints}
+              currentTimeIndex={currentTimeIndex}
+              onTimeChange={handleTimeChange}
+              isPlaying={isPlaying}
+              onPlayToggle={handlePlayToggle}
+              playbackSpeed={500}
+              isDailyMaxMode={showDailyMax}
+            />
+          </div>
+        )}
+
+        {/* 日最高値表示チェックボックス */}
+        <DailyMaxToggle
+          showDailyMax={showDailyMax}
+          onShowDailyMaxChange={handleShowDailyMaxChange}
+          label={translations.dailyMaxLabel || "日の最高値を表示"}
+        />
+
+        {/* 凡例 */}
+        <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">
+          <h4 className="font-bold text-sm mb-2 text-black">
+            {translations.legendTitle}
+          </h4>
+          <div className="space-y-1 text-xs">
+            {legendItems.map(
+              (item: { color: string; label: string }, index: number) => (
+                <div key={index} className="flex items-center">
+                  <div
+                    className="w-4 h-4 rounded-full mr-2"
+                    style={{ backgroundColor: item.color }}
+                  ></div>
+                  <span className="text-black font-medium">{item.label}</span>
+                </div>
+              )
+            )}
+          </div>
         </div>
-      )}
-
-      {/* 日最高値表示チェックボックス */}
-      <DailyMaxToggle
-        showDailyMax={showDailyMax}
-        onShowDailyMaxChange={handleShowDailyMaxChange}
-        label={translations.dailyMaxLabel || "日の最高値を表示"}
-      />
+      </div>
     </div>
   );
 }
