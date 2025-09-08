@@ -158,42 +158,40 @@ export function WbgtMapCore({
   }, [currentTimeIndex, showDailyMax, wbgtData, updateFeatureStates]);
 
   return (
-    <div className="relative w-full h-full">
-      <MapGL
-        ref={mapRef}
-        initialViewState={{
-          longitude: 139.7671,
-          latitude: 35.6812,
-          zoom: 5,
-        }}
-        style={{ width: "100%", height: "100%" }}
-        mapStyle={baseMapStyle}
-        onLoad={onLoad}
-        onClick={handleMapClick}
-        interactiveLayerIds={["wbgt-circles"]}
-      >
-        <Source id="wbgt-points" type="geojson" data={wbgtData}>
-          <Layer {...wbgtLayer} />
-        </Source>
-        {popupInfo && (
-          <WbgtPopup
-            popupInfo={popupInfo}
-            onClose={() => setPopupInfo(null)}
-            showDailyMax={showDailyMax}
-            translations={{
-              stationName: translations.stationName,
-              dailyMaxLabel: translations.dailyMaxLabel,
-              disaster: translations.disaster,
-              extreme: translations.extreme,
-              danger: translations.danger,
-              caution: translations.caution,
-              warning: translations.warning,
-              attention: translations.attention,
-              safe: translations.safe,
-            }}
-          />
-        )}
-      </MapGL>
-    </div>
+    <MapGL
+      ref={mapRef}
+      initialViewState={{
+        longitude: 139.7671,
+        latitude: 35.6812,
+        zoom: 5,
+      }}
+      style={{ width: "100%", height: "100%" }}
+      mapStyle={baseMapStyle}
+      onLoad={onLoad}
+      onClick={handleMapClick}
+      interactiveLayerIds={["wbgt-circles"]}
+    >
+      <Source id="wbgt-points" type="geojson" data={wbgtData}>
+        <Layer {...wbgtLayer} />
+      </Source>
+      {popupInfo && (
+        <WbgtPopup
+          popupInfo={popupInfo}
+          onClose={() => setPopupInfo(null)}
+          showDailyMax={showDailyMax}
+          translations={{
+            stationName: translations.stationName,
+            dailyMaxLabel: translations.dailyMaxLabel,
+            disaster: translations.disaster,
+            extreme: translations.extreme,
+            danger: translations.danger,
+            caution: translations.caution,
+            warning: translations.warning,
+            attention: translations.attention,
+            safe: translations.safe,
+          }}
+        />
+      )}
+    </MapGL>
   );
 }
