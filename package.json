@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "unused": "ts-unused-exports tsconfig.json"
+    "unused": "ts-unused-exports tsconfig.json",
+    "test": "vitest"
   },
   "dependencies": {
     "csv-parse": "^6.1.0",
@@ -33,6 +34,7 @@
     "eslint-config-next": "15.5.0",
     "tailwindcss": "^4",
     "ts-unused-exports": "^11.0.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

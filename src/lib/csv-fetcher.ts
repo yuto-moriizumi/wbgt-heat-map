@@ -40,22 +40,14 @@ async function fetchCombinedWbgtCsv(): Promise<string> {
   console.log(`${csvTexts.length}つのCSVデータを取得しました`);
 
   // 複数のCSVデータを時系列順に正しく結合
-  let header = "";
-  const allDataRows: string[] = [];
+  const processedData = csvTexts
+    .map(csvText => csvText.trim().split(/\r?\n/))
+    .filter(lines => lines.length > 0);
 
-  for (let i = 0; i < csvTexts.length; i++) {
-    const lines = csvTexts[i].trim().split(/\r?\n/);
-    if (lines.length === 0) continue;
-
-    // 最初の有効なCSVからヘッダーを取得
-    if (header === "" && lines.length > 0) {
-      header = lines[0];
-    }
-
-    // データ行を収集
-    const dataRows = lines.slice(1).filter((line) => line.trim() !== "");
-    allDataRows.push(...dataRows);
-  }
+  const header = processedData.find(lines => lines.length > 0)?.[0] || "";
+  
+  const allDataRows = processedData
+    .flatMap(lines => lines.slice(1).filter(line => line.trim() !== ""));
 
   if (header === "") {
     throw new Error("有効なCSVヘッダーが見つかりませんでした");
@@ -71,9 +63,7 @@ async function fetchCombinedWbgtCsv(): Promise<string> {
   return combinedCsvText;
 }
 
-function filterCsvDataByDateRange(csvText: string, days: number): string;
-function filterCsvDataByDateRange(csvText: string, startDate: dayjs.Dayjs, endDate: dayjs.Dayjs): string;
-function filterCsvDataByDateRange(csvText: string, startOrDays: number | dayjs.Dayjs, endDate?: dayjs.Dayjs): string {
+function filterCsvDataByDateRange(csvText: string, days: number): string {
   const lines = csvText.trim().split(/\r?\n/);
   if (lines.length < 2) {
     return csvText; // ヘッダーしかない場合はそのまま返す
@@ -82,39 +72,25 @@ function filterCsvDataByDateRange(csvText: string, startOrDays: number | dayjs.D
   const header = lines[0];
   const dataRows = lines.slice(1);
 
-  let cutoffStartDate: dayjs.Dayjs;
-  let cutoffEndDate: dayjs.Dayjs;
-
-  if (typeof startOrDays === 'number') {
-    // days指定の場合
-    cutoffStartDate = dayjs().subtract(startOrDays, "days").startOf("day");
-    cutoffEndDate = dayjs().endOf("day");
-  } else {
-    // startDateとendDate指定の場合
-    cutoffStartDate = startOrDays.startOf("day");
-    cutoffEndDate = (endDate as dayjs.Dayjs).endOf("day");
-  }
+  const cutoffStartDate = dayjs().subtract(days, "days").startOf("day");
+  const cutoffEndDate = dayjs().endOf("day");
 
   // フィルタリングされたデータ行を収集
-  const filteredRows: string[] = [];
-
-  for (const row of dataRows) {
+  const filteredRows = dataRows.filter(row => {
     const columns = row.split(",");
-    if (columns.length < 2) continue; // DateとTimeの列がない場合はスキップ
+    if (columns.length < 2) return false; // DateとTimeの列がない場合はスキップ
 
     const dateStr = columns[0].trim();
-    if (!dateStr) continue;
+    if (!dateStr) return false;
 
     // 日付をパース（YYYY-MM-DD形式を想定）
     const rowDate = dayjs(dateStr, "YYYY-MM-DD");
-    if (!rowDate.isValid()) continue;
+    if (!rowDate.isValid()) return false;
 
     // 指定期間内かチェック
-    if ((rowDate.isAfter(cutoffStartDate) || rowDate.isSame(cutoffStartDate, "day")) &&
-        (rowDate.isBefore(cutoffEndDate) || rowDate.isSame(cutoffEndDate, "day"))) {
-      filteredRows.push(row);
-    }
-  }
+    return (rowDate.isAfter(cutoffStartDate) || rowDate.isSame(cutoffStartDate, "day")) &&
+           (rowDate.isBefore(cutoffEndDate) || rowDate.isSame(cutoffEndDate, "day"));
+  });
 
   // ヘッダーとフィルタリングされた行を結合
   return [header, ...filteredRows].join("\n");

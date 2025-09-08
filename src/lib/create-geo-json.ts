@@ -23,113 +23,115 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
   console.log(`ヘッダーから地点ID数: ${stationIds.length}個`);
 
   // 行ごとの正規化済み時刻と、行に有効値があるかを事前計算
-  const rowTimes: string[] = [];
-  const rowHasAny: boolean[] = [];
-  const timePoints: string[] = [];
-  const timeSeen = new Set<string>();
+  const rowData = records
+    .slice(1)
+    .map((row, index) => {
+      if (!row) return null;
+      const date = String(row[0] ?? "");
+      const time = String(row[1] ?? "");
+      const normalizedTime = normalizeDateTime(date, time);
 
-  for (let rowIndex = 1; rowIndex < records.length; rowIndex++) {
-    const row = records[rowIndex];
-    if (!row) continue;
-    const date = String(row[0] ?? "");
-    const time = String(row[1] ?? "");
-    const t = normalizeDateTime(date, time);
-    rowTimes[rowIndex] = t;
+      const hasValidData = row
+        .slice(2)
+        .some(
+          (v) => v !== undefined && v !== "" && v !== null && !isNaN(Number(v))
+        );
 
-    let hasAny = false;
-    for (let col = 2; col < row.length; col++) {
-      const v = row[col];
-      if (v !== undefined && v !== "" && v !== null && !isNaN(Number(v))) {
-        hasAny = true;
-        break;
-      }
-    }
-    rowHasAny[rowIndex] = hasAny;
-    if (hasAny && !timeSeen.has(t)) {
-      timeSeen.add(t);
-      timePoints.push(dayjs.tz(t, "Asia/Tokyo").toISOString()); // JSTとしてISO文字列に変換
-    }
-  }
+      return {
+        rowIndex: index + 1,
+        normalizedTime,
+        hasValidData,
+        row,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
-  // GeoJSONフィーチャーを作成
-  const features = [];
+  const timePoints = Array.from(
+    new Set(
+      rowData
+        .filter((item) => item.hasValidData)
+        .map((item) => item.normalizedTime)
+    )
+  ).map((time) => dayjs.tz(time, "Asia/Tokyo").toISOString());
 
   // 各地点に対してデータを処理
-  for (let stationIndex = 0; stationIndex < stationIds.length; stationIndex++) {
-    const stationId = String(stationIds[stationIndex]).trim();
+  const features = stationIds
+    .map((stationId, stationIndex) => {
+      const trimmedStationId = String(stationId).trim();
 
-    // 対応する地点情報を検索
-    const station = stations.find((s) => s.id === stationId);
-    if (!station) {
-      console.log(`地点ID ${stationId} が地点マスタに見つかりません`);
-      continue;
-    }
+      // 対応する地点情報を検索
+      const station = stations.find((s) => s.id === trimmedStationId);
+      if (!station) {
+        console.log(`地点ID ${trimmedStationId} が地点マスタに見つかりません`);
+        return null;
+      }
 
-    // 時系列データを収集
-    const timeSeriesData: TimeSeriesData[] = [];
+      // 時系列データを収集
+      const timeSeriesData: TimeSeriesData[] = rowData
+        .map((item) => {
+          const row = item.row;
+          if (!row || row.length <= stationIndex + 2) return null;
 
-    // 各時刻のデータを処理（ヘッダー行をスキップ）
-    for (let rowIndex = 1; rowIndex < records.length; rowIndex++) {
-      const row = records[rowIndex];
-      if (!row || row.length <= stationIndex + 2) continue;
+          const value = row[stationIndex + 2]; // Date, Timeの後の列
 
-      const value = row[stationIndex + 2]; // Date, Timeの後の列
+          if (
+            value !== undefined &&
+            value !== "" &&
+            value !== null &&
+            !isNaN(Number(value))
+          ) {
+            let wbgt = Number(value);
 
-      if (value !== undefined && value !== "" && value !== null && !isNaN(Number(value))) {
-        let wbgt = Number(value);
+            return {
+              time: item.normalizedTime,
+              wbgt: wbgt,
+            };
+          }
+          return null;
+        })
+        .filter((item): item is TimeSeriesData => item !== null);
 
-        // WBGTが10倍されている場合の調整
-        if (wbgt > 100) {
-          wbgt = wbgt / 10;
+      if (timeSeriesData.length === 0) {
+        console.log(`地点ID ${trimmedStationId} にWBGTデータがありません`);
+        return null;
+      }
+
+      // 日付ごとの最高値を計算
+      const maxWbgtByDate: { [date: string]: number } = {};
+      timeSeriesData.forEach((data) => {
+        const date = data.time.split(" ")[0]; // YYYY-MM-DD HH:mm から日付部分を抽出
+        if (!maxWbgtByDate[date] || data.wbgt > maxWbgtByDate[date]) {
+          maxWbgtByDate[date] = data.wbgt;
         }
+      });
 
-        const timeString = rowTimes[rowIndex];
+      // valueByDateを作成
+      const valueByDate = Object.entries(maxWbgtByDate).map(([date, wbgt]) => ({
+        date,
+        wbgt,
+      }));
 
-        timeSeriesData.push({
-          time: timeString,
-          wbgt: wbgt,
-        });
-      }
-    }
-
-    if (timeSeriesData.length === 0) {
-      console.log(`地点ID ${stationId} にWBGTデータがありません`);
-      continue;
-    }
-
-    // 日付ごとの最高値を計算
-    const maxWbgtByDate: { [date: string]: number } = {};
-    timeSeriesData.forEach(data => {
-      const date = data.time.split(' ')[0]; // YYYY-MM-DD HH:mm から日付部分を抽出
-      if (!maxWbgtByDate[date] || data.wbgt > maxWbgtByDate[date]) {
-        maxWbgtByDate[date] = data.wbgt;
-      }
-    });
-
-    // valueByDateを作成
-    const valueByDate = Object.entries(maxWbgtByDate).map(([date, wbgt]) => ({
-      date,
-      wbgt,
-    }));
-
-    features.push({
-      type: "Feature" as const,
-      id: stationId, // トップレベルidを追加
-      properties: {
-        id: stationId,
-        name: station.name,
-        valueByDateTime: timeSeriesData,
-        valueByDate: valueByDate,
-      },
-      geometry: {
-        type: "Point" as const,
-        coordinates: [parseFloat(station.lng), parseFloat(station.lat)] as [
-          number,
-          number
-        ],
-      },
-    });
-  }
+      return {
+        type: "Feature" as const,
+        id: trimmedStationId,
+        properties: {
+          id: trimmedStationId,
+          name: station.name,
+          valueByDateTime: timeSeriesData,
+          valueByDate: valueByDate,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [parseFloat(station.lng), parseFloat(station.lat)] as [
+            number,
+            number
+          ],
+        },
+      };
+    })
+    .filter(
+      (feature): feature is NonNullable<typeof feature> => feature !== null
+    );
 
   console.log(`GeoJSONフィーチャー作成完了: ${features.length}地点`);
 

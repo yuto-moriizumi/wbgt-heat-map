@@ -72,14 +72,8 @@ export function getWbgtLevelInfo(wbgt: number): WbgtLevel {
   }
 
   // 閾値以上の最初のレベルを返す
-  for (const level of WBGT_LEVELS) {
-    if (wbgt >= level.threshold) {
-      return level;
-    }
-  }
-
-  // フォールバック（通常は到達しない）
-  return WBGT_LEVELS[WBGT_LEVELS.length - 1];
+  const level = WBGT_LEVELS.find(level => wbgt >= level.threshold);
+  return level || WBGT_LEVELS[WBGT_LEVELS.length - 1];
 }
 
 // MapLibre GL用のステップ式カラー表現を生成する関数
