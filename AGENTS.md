@@ -8,6 +8,8 @@
 1. **Unused exports** `npm run unused` and remove `export` keyword unless it's special one for Next.js
 1. **Browser test** Verify the functionality using Playwright MCP.
 
+Once all checks pass, you can consider the task complete.
+
 ## Where is documentation
 
 Project documentation is stored in the `docs` directory in Markdown files.

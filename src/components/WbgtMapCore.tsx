@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import {
   Map as MapGL,
   Source,
@@ -95,16 +95,107 @@ export default function WbgtMapCore({
   // WBGTの値から翻訳されたリスクレベルを取得する関数
   const getTranslatedRiskLevel = useCallback(
     (wbgt: number): string => {
-      if (wbgt === 0) return translations.safe; // 0は「ほぼ安全」として扱う
-      if (wbgt >= 35) return translations.disaster;
-      if (wbgt >= 33) return translations.extreme;
-      if (wbgt >= 31) return translations.danger;
-      if (wbgt >= 28) return translations.caution;
-      if (wbgt >= 25) return translations.warning;
-      if (wbgt >= 21) return translations.attention;
-      return translations.safe;
+      const levelInfo = getWbgtLevelInfo(wbgt);
+      switch (levelInfo.level) {
+        case 'disaster': return translations.disaster;
+        case 'extreme': return translations.extreme;
+        case 'danger': return translations.danger;
+        case 'caution': return translations.caution;
+        case 'warning': return translations.warning;
+        case 'attention': return translations.attention;
+        case 'safe': return translations.safe;
+        default: return translations.safe;
+      }
     },
     [translations]
+  );
+
+  // ルックアップマップ: stationId -> valueByDateTime[]
+  const timeSeriesLookup = useMemo(() => {
+    const lookup = new Map<string, { time: string; wbgt: number }[]>();
+    wbgtData.features.forEach((feature) => {
+      const id = feature.properties?.id;
+      const valueByDateTime = feature.properties?.valueByDateTime as
+        | number[]
+        | undefined;
+
+      if (id && valueByDateTime) {
+        // timePointsと組み合わせて時系列データを再構築
+        const timeSeriesData = timePoints.map((timePoint, index) => ({
+          time: timePoint.format("YYYY/MM/DD HH:mm"),
+          wbgt: valueByDateTime[index] || 0,
+        }));
+        lookup.set(id, timeSeriesData);
+      }
+    });
+    return lookup;
+  }, [wbgtData, timePoints]);
+
+  // feature-stateを適用する共通関数
+  const updateFeatureStates = useCallback(
+    (map: MapLibreMap) => {
+      if (showDailyMax) {
+        const targetDate =
+          timePoints[currentTimeIndex]?.format("YYYY-MM-DD") || "";
+        if (targetDate) {
+          wbgtData.features.forEach((feature) => {
+            const id = feature.properties?.id;
+            const valueByDate = feature.properties?.valueByDate;
+            if (id && valueByDate && Array.isArray(valueByDate)) {
+              const dataForDate = valueByDate.find(
+                (item: { date: string; wbgt: number }) => item.date === targetDate
+              );
+              const wbgt = dataForDate?.wbgt ?? 0;
+              map.setFeatureState(
+                { source: "wbgt-points", id: id },
+                { wbgt: wbgt, time: targetDate }
+              );
+            }
+          });
+        }
+      } else {
+        const currentTime =
+          timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
+        if (currentTime) {
+          timeSeriesLookup.forEach(
+            (
+              valueByDateTime: {
+                time: string;
+                wbgt: number;
+              }[],
+              stationId: string
+            ) => {
+              const dataForTime = valueByDateTime.find(
+                (data) => data.time === currentTime
+              );
+              const wbgt = dataForTime?.wbgt ?? 0;
+              map.setFeatureState(
+                {
+                  source: "wbgt-points",
+                  id: stationId,
+                },
+                {
+                  wbgt: wbgt,
+                  time: currentTime,
+                }
+              );
+            }
+          );
+        } else {
+          // 初期状態（データがまだない場合）
+          wbgtData.features.forEach((feature) => {
+            const id = feature.properties?.id;
+            if (id) {
+              map.setFeatureState(
+                { source: "wbgt-points", id: id },
+                { wbgt: 0, time: "" }
+              );
+            }
+          });
+        }
+      }
+    },
+    [currentTimeIndex, timePoints, timeSeriesLookup, showDailyMax, wbgtData]
   );
 
   // 地図クリックのハンドラー
@@ -125,9 +216,14 @@ export default function WbgtMapCore({
           const wbgt = featureState?.wbgt ?? 0;
           const time =
             featureState?.time ??
-            (timePoints[0] ? timePoints[0].format("YYYY-MM-DD") : "");
+            (timePoints[currentTimeIndex] ? 
+              (showDailyMax ? 
+                timePoints[currentTimeIndex].format("YYYY-MM-DD") :
+                timePoints[currentTimeIndex].format("YYYY/MM/DD HH:mm")
+              ) : "");
 
           const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
+
           setPopupInfo({
             longitude: event.lngLat.lng,
             latitude: event.lngLat.lat,
@@ -142,59 +238,7 @@ export default function WbgtMapCore({
         setPopupInfo(null);
       }
     },
-    [getTranslatedRiskLevel, timePoints]
-  );
-
-  // ルックアップマップ: stationId -> valueByDateTime[]
-  const timeSeriesLookup = (() => {
-    const lookup = new Map<string, { time: string; wbgt: number }[]>();
-    wbgtData.features.forEach((feature) => {
-      const id = feature.properties?.id;
-      const valueByDateTime = feature.properties?.valueByDateTime as
-        | number[]
-        | undefined;
-
-      if (id && valueByDateTime) {
-        // timePointsと組み合わせて時系列データを再構築
-        const timeSeriesData = timePoints.map((timePoint, index) => ({
-          time: timePoint.format("YYYY/MM/DD HH:mm"),
-          wbgt: valueByDateTime[index] || 0,
-        }));
-        lookup.set(id, timeSeriesData);
-      }
-    });
-    return lookup;
-  })();
-
-  // feature-stateを適用する関数
-  const applyFeatureState = useCallback(
-    (map: MapLibreMap, time: string) => {
-      timeSeriesLookup.forEach(
-        (
-          valueByDateTime: {
-            time: string;
-            wbgt: number;
-          }[],
-          stationId: string
-        ) => {
-          const dataForTime = valueByDateTime.find(
-            (data) => data.time === time
-          );
-          const wbgt = dataForTime?.wbgt ?? 0;
-          map.setFeatureState(
-            {
-              source: "wbgt-points",
-              id: stationId,
-            },
-            {
-              wbgt: wbgt,
-              time: time,
-            }
-          );
-        }
-      );
-    },
-    [timeSeriesLookup]
+    [getTranslatedRiskLevel, timePoints, currentTimeIndex, showDailyMax]
   );
 
   // currentTimeIndex変更時にfeature-stateを更新
@@ -202,100 +246,43 @@ export default function WbgtMapCore({
     if (!mapRef.current || timePoints.length === 0) return;
 
     const map = mapRef.current.getMap();
-
-    // 日最高値モードの場合は特別処理
-    if (showDailyMax) {
-      const targetDate =
-        timePoints[currentTimeIndex]?.format("YYYY-MM-DD") || "";
-      if (targetDate) {
-        wbgtData.features.forEach((feature) => {
-          const id = feature.properties?.id;
-          const valueByDate = feature.properties?.valueByDate;
-          if (id && valueByDate && Array.isArray(valueByDate)) {
-            const dataForDate = valueByDate.find(
-              (item: { date: string; wbgt: number }) => item.date === targetDate
-            );
-            const wbgt = dataForDate?.wbgt ?? 0;
-            map.setFeatureState(
-              { source: "wbgt-points", id: id },
-              { wbgt: wbgt, time: targetDate }
-            );
-          }
-        });
-      }
-    } else {
-      // 通常モード
-      const currentTime =
-        timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
-      if (currentTime) {
-        applyFeatureState(map, currentTime);
-      }
+    if (map.getSource("wbgt-points")) {
+      updateFeatureStates(map);
     }
   }, [
     currentTimeIndex,
     timePoints,
-    applyFeatureState,
+    updateFeatureStates,
     timeSeriesLookup,
     showDailyMax,
     wbgtData,
   ]);
 
-  // マップロード時の初期feature-state設定
-  const handleMapLoad = useCallback(
-    (event: { target: MapLibreMap }) => {
-      const map = event.target;
+  // マップロード時とソースデータ変更時の初期feature-state設定
+  useEffect(() => {
+    if (!mapRef.current) return;
 
-      const applyInitialState = () => {
-        if (map.getSource("wbgt-points")) {
-          if (showDailyMax) {
-            const targetDate =
-              timePoints[currentTimeIndex]?.format("YYYY-MM-DD") || "";
-            if (targetDate) {
-              wbgtData.features.forEach((feature) => {
-                const id = feature.properties?.id;
-                const valueByDate = feature.properties?.valueByDate;
-                if (id && valueByDate && Array.isArray(valueByDate)) {
-                  const dataForDate = valueByDate.find(
-                    (item: { date: string; wbgt: number }) =>
-                      item.date === targetDate
-                  );
-                  const wbgt = dataForDate?.wbgt ?? 0;
-                  map.setFeatureState(
-                    { source: "wbgt-points", id: id },
-                    { wbgt: wbgt, time: targetDate }
-                  );
-                }
-              });
-            }
-          } else {
-            const currentTime =
-              timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
-            if (currentTime) {
-              applyFeatureState(map, currentTime);
-            } else {
-              // 初期状態（データがまだない場合）
-              wbgtData.features.forEach((feature) => {
-                const id = feature.properties?.id;
-                if (id) {
-                  map.setFeatureState(
-                    { source: "wbgt-points", id: id },
-                    { wbgt: 0, time: "" }
-                  );
-                }
-              });
-            }
-          }
-        }
-      };
-
-      if (map.isStyleLoaded()) {
-        applyInitialState();
-      } else {
-        map.on("style.load", applyInitialState);
+    const map = mapRef.current.getMap();
+    
+    const handleSourceData = (e: { sourceId: string; isSourceLoaded: boolean }) => {
+      // wbgt-pointsソースのデータが実際にロードされた時のみ実行
+      if (e.sourceId === 'wbgt-points' && e.isSourceLoaded && map.getSource("wbgt-points")) {
+        updateFeatureStates(map);
       }
-    },
-    [timePoints, currentTimeIndex, applyFeatureState, wbgtData, showDailyMax]
-  );
+    };
+
+    // 既にロードされている場合は即座に実行
+    if (map.isStyleLoaded() && map.getSource("wbgt-points")) {
+      updateFeatureStates(map);
+    }
+
+    // sourcedata イベントでソースが利用可能になったときに実行
+    map.on('sourcedata', handleSourceData);
+
+    return () => {
+      map.off('sourcedata', handleSourceData);
+    };
+  }, [updateFeatureStates]);
 
   return (
     <div className="relative w-full h-full">
@@ -309,7 +296,6 @@ export default function WbgtMapCore({
         style={{ width: "100%", height: "100%" }}
         mapStyle={baseMapStyle}
         onClick={handleMapClick}
-        onLoad={handleMapLoad}
         interactiveLayerIds={["wbgt-circles"]}
       >
         <Source id="wbgt-points" type="geojson" data={wbgtData}>
