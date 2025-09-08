@@ -80,7 +80,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
             value !== null &&
             !isNaN(Number(value))
           ) {
-            let wbgt = Number(value);
+            const wbgt = Number(value);
 
             return {
               time: item.normalizedTime,
