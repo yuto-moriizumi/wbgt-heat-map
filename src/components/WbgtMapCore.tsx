@@ -145,13 +145,12 @@ export function WbgtMapCore({
           if (!id || !valueByDate || !Array.isArray(valueByDate)) return;
 
           const dataForDate = valueByDate.find(
-            (item: { date: string; wbgt: number }) =>
-              item.date === targetDate
+            (item: { date: string; wbgt: number }) => item.date === targetDate
           );
           const wbgt = dataForDate?.wbgt ?? 0;
           map.setFeatureState(
             { source: "wbgt-points", id: id },
-            { wbgt: wbgt, time: targetDate }
+            { wbgt: wbgt }
           );
         });
         return;
@@ -159,7 +158,7 @@ export function WbgtMapCore({
 
       const currentTime =
         timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
-      
+
       if (currentTime) {
         timeSeriesLookup.forEach(
           (
@@ -180,7 +179,6 @@ export function WbgtMapCore({
               },
               {
                 wbgt: wbgt,
-                time: currentTime,
               }
             );
           }
@@ -195,7 +193,7 @@ export function WbgtMapCore({
 
         map.setFeatureState(
           { source: "wbgt-points", id: id },
-          { wbgt: 0, time: "" }
+          { wbgt: 0 }
         );
       });
     },
@@ -206,7 +204,7 @@ export function WbgtMapCore({
   const handleMapClick = useCallback(
     (event: MapMouseEvent) => {
       const { features } = event;
-      
+
       if (!features || features.length === 0) {
         setPopupInfo(null);
         return;
@@ -215,7 +213,7 @@ export function WbgtMapCore({
       const feature = features[0];
       const { name, id } = feature.properties;
       const map = mapRef.current?.getMap();
-      
+
       if (!map) return;
 
       const featureState = map.getFeatureState({
@@ -224,13 +222,6 @@ export function WbgtMapCore({
       });
 
       const wbgt = featureState?.wbgt ?? 0;
-      const time =
-        featureState?.time ??
-        (timePoints[currentTimeIndex]
-          ? showDailyMax
-            ? timePoints[currentTimeIndex].format("YYYY-MM-DD")
-            : timePoints[currentTimeIndex].format("YYYY/MM/DD HH:mm")
-          : "");
 
       const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
 
@@ -240,11 +231,10 @@ export function WbgtMapCore({
         name,
         wbgt,
         riskLevel: translatedRiskLevel,
-        time,
         id,
       });
     },
-    [getTranslatedRiskLevel, timePoints, currentTimeIndex, showDailyMax]
+    [getTranslatedRiskLevel]
   );
 
   // currentTimeIndex変更時にfeature-stateを更新

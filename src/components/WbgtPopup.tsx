@@ -7,7 +7,6 @@ export interface PopupInfo {
   name: string;
   wbgt: number;
   riskLevel: string;
-  time: string;
   id: string;
 }
 
@@ -47,14 +46,10 @@ export function WbgtPopup({
           {popupInfo.wbgt}
         </p>
         <p className="text-sm text-black font-medium">{popupInfo.riskLevel}</p>
-        {showDailyMax ? (
+        {showDailyMax && (
           <p className="text-xs text-gray-600 mt-1">
             {translations.dailyMaxLabel}
           </p>
-        ) : (
-          popupInfo.time && (
-            <p className="text-xs text-gray-600 mt-1">時刻: {popupInfo.time}</p>
-          )
         )}
         <p className="text-xs text-gray-700 mt-1">
           {translations.stationName}: {popupInfo.id}
