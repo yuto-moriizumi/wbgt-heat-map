@@ -5,7 +5,6 @@ import {
   Map as MapGL,
   Source,
   Layer,
-  Popup,
   MapMouseEvent,
   MapRef,
   LayerProps,
@@ -18,6 +17,7 @@ import {
   CIRCLE_STROKE_COLOR,
 } from "@/lib/wbgt-config";
 import { WbgtGeoJSON } from "@/lib/types";
+import { WbgtPopup, PopupInfo } from "./WbgtPopup";
 
 // マップスタイルをコンポーネント外に定義（ちらつき防止）
 const baseMapStyle = {
@@ -81,15 +81,7 @@ export default function WbgtMapCore({
   translations,
   showDailyMax = false,
 }: WbgtMapCoreProps) {
-  const [popupInfo, setPopupInfo] = useState<{
-    longitude: number;
-    latitude: number;
-    name: string;
-    wbgt: number;
-    riskLevel: string;
-    time: string;
-    id: string;
-  } | null>(null);
+  const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const mapRef = useRef<MapRef>(null);
 
   // WBGTの値から翻訳されたリスクレベルを取得する関数
@@ -97,14 +89,22 @@ export default function WbgtMapCore({
     (wbgt: number): string => {
       const levelInfo = getWbgtLevelInfo(wbgt);
       switch (levelInfo.level) {
-        case 'disaster': return translations.disaster;
-        case 'extreme': return translations.extreme;
-        case 'danger': return translations.danger;
-        case 'caution': return translations.caution;
-        case 'warning': return translations.warning;
-        case 'attention': return translations.attention;
-        case 'safe': return translations.safe;
-        default: return translations.safe;
+        case "disaster":
+          return translations.disaster;
+        case "extreme":
+          return translations.extreme;
+        case "danger":
+          return translations.danger;
+        case "caution":
+          return translations.caution;
+        case "warning":
+          return translations.warning;
+        case "attention":
+          return translations.attention;
+        case "safe":
+          return translations.safe;
+        default:
+          return translations.safe;
       }
     },
     [translations]
@@ -143,7 +143,8 @@ export default function WbgtMapCore({
             const valueByDate = feature.properties?.valueByDate;
             if (id && valueByDate && Array.isArray(valueByDate)) {
               const dataForDate = valueByDate.find(
-                (item: { date: string; wbgt: number }) => item.date === targetDate
+                (item: { date: string; wbgt: number }) =>
+                  item.date === targetDate
               );
               const wbgt = dataForDate?.wbgt ?? 0;
               map.setFeatureState(
@@ -216,11 +217,11 @@ export default function WbgtMapCore({
           const wbgt = featureState?.wbgt ?? 0;
           const time =
             featureState?.time ??
-            (timePoints[currentTimeIndex] ? 
-              (showDailyMax ? 
-                timePoints[currentTimeIndex].format("YYYY-MM-DD") :
-                timePoints[currentTimeIndex].format("YYYY/MM/DD HH:mm")
-              ) : "");
+            (timePoints[currentTimeIndex]
+              ? showDailyMax
+                ? timePoints[currentTimeIndex].format("YYYY-MM-DD")
+                : timePoints[currentTimeIndex].format("YYYY/MM/DD HH:mm")
+              : "");
 
           const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
 
@@ -263,10 +264,17 @@ export default function WbgtMapCore({
     if (!mapRef.current) return;
 
     const map = mapRef.current.getMap();
-    
-    const handleSourceData = (e: { sourceId: string; isSourceLoaded: boolean }) => {
+
+    const handleSourceData = (e: {
+      sourceId: string;
+      isSourceLoaded: boolean;
+    }) => {
       // wbgt-pointsソースのデータが実際にロードされた時のみ実行
-      if (e.sourceId === 'wbgt-points' && e.isSourceLoaded && map.getSource("wbgt-points")) {
+      if (
+        e.sourceId === "wbgt-points" &&
+        e.isSourceLoaded &&
+        map.getSource("wbgt-points")
+      ) {
         updateFeatureStates(map);
       }
     };
@@ -277,10 +285,10 @@ export default function WbgtMapCore({
     }
 
     // sourcedata イベントでソースが利用可能になったときに実行
-    map.on('sourcedata', handleSourceData);
+    map.on("sourcedata", handleSourceData);
 
     return () => {
-      map.off('sourcedata', handleSourceData);
+      map.off("sourcedata", handleSourceData);
     };
   }, [updateFeatureStates]);
 
@@ -301,45 +309,16 @@ export default function WbgtMapCore({
         <Source id="wbgt-points" type="geojson" data={wbgtData}>
           <Layer {...wbgtLayer} />
         </Source>
-
         {popupInfo && (
-          <Popup
-            longitude={popupInfo.longitude}
-            latitude={popupInfo.latitude}
+          <WbgtPopup
+            popupInfo={popupInfo}
             onClose={() => setPopupInfo(null)}
-            closeButton={true}
-            closeOnClick={false}
-            anchor="bottom"
-          >
-            <div className="p-3">
-              <h3 className="font-bold text-lg text-black">{popupInfo.name}</h3>
-              <p
-                className="text-2xl font-bold"
-                style={{
-                  color: getWbgtLevelInfo(popupInfo.wbgt).color,
-                }}
-              >
-                {popupInfo.wbgt}
-              </p>
-              <p className="text-sm text-black font-medium">
-                {popupInfo.riskLevel}
-              </p>
-              {showDailyMax ? (
-                <p className="text-xs text-gray-600 mt-1">
-                  {translations.dailyMaxLabel}
-                </p>
-              ) : (
-                popupInfo.time && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    時刻: {popupInfo.time}
-                  </p>
-                )
-              )}
-              <p className="text-xs text-gray-700 mt-1">
-                {translations.stationName}: {popupInfo.id}
-              </p>
-            </div>
-          </Popup>
+            showDailyMax={showDailyMax}
+            translations={{
+              stationName: translations.stationName,
+              dailyMaxLabel: translations.dailyMaxLabel,
+            }}
+          />
         )}
       </MapGL>
     </div>
