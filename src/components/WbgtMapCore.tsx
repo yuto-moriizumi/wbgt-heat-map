@@ -112,10 +112,9 @@ export function WbgtMapCore({
           timePoints[currentTimeIndex]?.format("YYYY-MM-DD") || "";
         if (!targetDate) return;
 
-        wbgtData.features.forEach((feature) => {
-          const id = feature.properties?.id;
-          const valueByDate = feature.properties?.valueByDate;
-          if (!id || !valueByDate || !Array.isArray(valueByDate)) return;
+        wbgtData.features.forEach(({ properties }) => {
+          const id = properties.id;
+          const valueByDate = properties.valueByDate;
 
           const dataForDate = valueByDate.find(
             (item: { date: string; wbgt: number }) => item.date === targetDate
@@ -128,84 +127,47 @@ export function WbgtMapCore({
         });
         return;
       }
-
-      const currentTime =
-        timePoints[currentTimeIndex]?.format("YYYY/MM/DD HH:mm") || "";
-
-      if (currentTime) {
-        timeSeriesLookup.forEach(
-          (
-            valueByDateTime: {
-              time: string;
-              wbgt: number;
-            }[],
-            stationId: string
-          ) => {
-            const dataForTime = valueByDateTime.find(
-              (data) => data.time === currentTime
-            );
-            const wbgt = dataForTime?.wbgt ?? 0;
-            map.setFeatureState(
-              {
-                source: "wbgt-points",
-                id: stationId,
-              },
-              {
-                wbgt: wbgt,
-              }
-            );
-          }
-        );
-        return;
-      }
-
-      // 初期状態（データがまだない場合）
-      wbgtData.features.forEach((feature) => {
-        const id = feature.properties?.id;
-        if (!id) return;
-
+      wbgtData.features.forEach(({ properties }) => {
         map.setFeatureState(
-          { source: "wbgt-points", id: id },
-          { wbgt: 0 }
+          { source: "wbgt-points", id: properties.id },
+          { wbgt: properties.valueByDateTime[currentTimeIndex] ?? 0 }
         );
       });
+      return;
     },
-    [currentTimeIndex, timePoints, timeSeriesLookup, showDailyMax, wbgtData]
+    [currentTimeIndex, timePoints, showDailyMax, wbgtData]
   );
 
   // 地図クリックのハンドラー
-  const handleMapClick = useCallback(
-    (event: MapMouseEvent) => {
-      const { features } = event;
+  const handleMapClick = useCallback((event: MapMouseEvent) => {
+    const { features } = event;
 
-      if (!features || features.length === 0) {
-        setPopupInfo(null);
-        return;
-      }
+    if (!features || features.length === 0) {
+      setPopupInfo(null);
+      return;
+    }
 
-      const feature = features[0];
-      const { name, id } = feature.properties;
-      const map = mapRef.current?.getMap();
+    const feature = features[0];
+    const { name, id } = feature.properties;
+    const map = mapRef.current?.getMap();
 
-      if (!map) return;
+    if (!map) return;
 
-      const featureState = map.getFeatureState({
-        source: "wbgt-points",
-        id: id,
-      });
+    const featureState = map.getFeatureState({
+      source: "wbgt-points",
+      id: id,
+    });
 
-      const wbgt = featureState?.wbgt ?? 0;
+    const wbgt = featureState?.wbgt ?? 0;
 
-      setPopupInfo({
-        longitude: event.lngLat.lng,
-        latitude: event.lngLat.lat,
-        name,
-        wbgt,
-        id,
-      });
-    },
-    []
-  );
+    setPopupInfo({
+      longitude: event.lngLat.lng,
+      latitude: event.lngLat.lat,
+      name,
+      wbgt,
+      id,
+    });
+  }, []);
 
   // currentTimeIndex変更時にfeature-stateを更新
   useEffect(() => {
