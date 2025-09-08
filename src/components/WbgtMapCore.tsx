@@ -83,27 +83,6 @@ export function WbgtMapCore({
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const mapRef = useRef<MapRef>(null);
 
-  // ルックアップマップ: stationId -> valueByDateTime[]
-  const timeSeriesLookup = useMemo(() => {
-    const lookup = new Map<string, { time: string; wbgt: number }[]>();
-    wbgtData.features.forEach((feature) => {
-      const id = feature.properties?.id;
-      const valueByDateTime = feature.properties?.valueByDateTime as
-        | number[]
-        | undefined;
-
-      if (!id || !valueByDateTime) return;
-
-      // timePointsと組み合わせて時系列データを再構築
-      const timeSeriesData = timePoints.map((timePoint, index) => ({
-        time: timePoint.format("YYYY/MM/DD HH:mm"),
-        wbgt: valueByDateTime[index] || 0,
-      }));
-      lookup.set(id, timeSeriesData);
-    });
-    return lookup;
-  }, [wbgtData, timePoints]);
-
   // feature-stateを適用する共通関数
   const updateFeatureStates = useCallback(
     (map: MapLibreMap) => {
@@ -181,7 +160,6 @@ export function WbgtMapCore({
     currentTimeIndex,
     timePoints,
     updateFeatureStates,
-    timeSeriesLookup,
     showDailyMax,
     wbgtData,
   ]);
