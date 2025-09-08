@@ -114,6 +114,7 @@ export function WbgtMapCore({
     [currentTimeIndex, timePoints, showDailyMax, wbgtData]
   );
 
+  /** 初期ロード時にFeatureStateを設定 */
   const onLoad = useCallback(
     (evt: { target: MapLibreMap }) => {
       const map = evt.target;
@@ -134,27 +135,17 @@ export function WbgtMapCore({
   const handleMapClick = useCallback((event: MapMouseEvent) => {
     const { features } = event;
     const map = mapRef.current?.getMap();
-
     if (!map || !features || features.length === 0) {
       setPopupInfo(null);
       return;
     }
-
-    const feature = features[0];
-    const { name, id } = feature.properties;
-
-    const featureState = map.getFeatureState({
-      source: "wbgt-points",
-      id: id,
-    });
-
-    const wbgt = featureState?.wbgt ?? 0;
-
+    const { name, id } = features[0].properties;
+    const featureState = map.getFeatureState({ source: "wbgt-points", id });
     setPopupInfo({
       longitude: event.lngLat.lng,
       latitude: event.lngLat.lat,
       name,
-      wbgt,
+      wbgt: featureState?.wbgt ?? 0,
       id,
     });
   }, []);
@@ -163,7 +154,6 @@ export function WbgtMapCore({
   useEffect(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
-
     updateFeatureStates(map);
   }, [currentTimeIndex, showDailyMax, wbgtData, updateFeatureStates]);
 
