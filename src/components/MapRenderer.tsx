@@ -56,20 +56,6 @@ interface WbgtMapCoreProps {
   wbgtData: WbgtGeoJSON;
   currentTimeIndex: number;
   timePoints: Dayjs[];
-  translations: {
-    stationName: string;
-    wbgt: string;
-    riskLevel: string;
-    legendTitle: string;
-    disaster: string;
-    extreme: string;
-    danger: string;
-    caution: string;
-    warning: string;
-    attention: string;
-    safe: string;
-    dailyMaxLabel: string;
-  };
   showDailyMax?: boolean;
 }
 
@@ -77,7 +63,6 @@ export function MapRenderer({
   wbgtData,
   currentTimeIndex,
   timePoints,
-  translations,
   showDailyMax = false,
 }: WbgtMapCoreProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
@@ -179,17 +164,6 @@ export function MapRenderer({
           popupInfo={popupInfo}
           onClose={() => setPopupInfo(null)}
           showDailyMax={showDailyMax}
-          translations={{
-            stationName: translations.stationName,
-            dailyMaxLabel: translations.dailyMaxLabel,
-            disaster: translations.disaster,
-            extreme: translations.extreme,
-            danger: translations.danger,
-            caution: translations.caution,
-            warning: translations.warning,
-            attention: translations.attention,
-            safe: translations.safe,
-          }}
         />
       )}
     </MapGL>

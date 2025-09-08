@@ -1,6 +1,8 @@
 # Agent Instructions
 
-## Do checks after tasks
+## Do checks before completing a task
+
+Do following check in order:
 
 1. **Typecheck** `npm run typecheck`
 1. **Test** `npm run test -- --run` - Ensure all tests pass after typecheck

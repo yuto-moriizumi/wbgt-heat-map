@@ -1,6 +1,7 @@
 import { Popup } from "react-map-gl/maplibre";
 import { getWbgtLevelInfo } from "@/lib/wbgt-config";
 import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 
 export interface PopupInfo {
   longitude: number;
@@ -14,49 +15,38 @@ interface WbgtPopupProps {
   popupInfo: PopupInfo;
   onClose: () => void;
   showDailyMax: boolean;
-  translations: {
-    stationName: string;
-    dailyMaxLabel: string;
-    disaster: string;
-    extreme: string;
-    danger: string;
-    caution: string;
-    warning: string;
-    attention: string;
-    safe: string;
-  };
 }
 
 export function WbgtPopup({
   popupInfo,
   onClose,
   showDailyMax,
-  translations,
 }: WbgtPopupProps) {
-  // WBGTの値から翻訳されたリスクレベルを取得する関数
+  const tMap = useTranslations("WbgtMap");
+  
   const getTranslatedRiskLevel = useCallback(
     (wbgt: number): string => {
       const levelInfo = getWbgtLevelInfo(wbgt);
       switch (levelInfo.level) {
         case "disaster":
-          return translations.disaster;
+          return tMap("disaster");
         case "extreme":
-          return translations.extreme;
+          return tMap("extreme");
         case "danger":
-          return translations.danger;
+          return tMap("danger");
         case "caution":
-          return translations.caution;
+          return tMap("caution");
         case "warning":
-          return translations.warning;
+          return tMap("warning");
         case "attention":
-          return translations.attention;
+          return tMap("attention");
         case "safe":
-          return translations.safe;
+          return tMap("safe");
         default:
-          return translations.safe;
+          return tMap("safe");
       }
     },
-    [translations]
+    [tMap]
   );
 
   const translatedRiskLevel = getTranslatedRiskLevel(popupInfo.wbgt);
@@ -83,11 +73,11 @@ export function WbgtPopup({
         <p className="text-sm text-black font-medium">{translatedRiskLevel}</p>
         {showDailyMax && (
           <p className="text-xs text-gray-600 mt-1">
-            {translations.dailyMaxLabel}
+            {tMap("dailyMaxLabel")}
           </p>
         )}
         <p className="text-xs text-gray-700 mt-1">
-          {translations.stationName}: {popupInfo.id}
+          {tMap("stationName")}: {popupInfo.id}
         </p>
       </div>
     </Popup>

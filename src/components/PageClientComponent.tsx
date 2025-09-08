@@ -104,7 +104,6 @@ export function PageClientComponent({
         <MapRenderer
           wbgtData={initialWbgtData}
           currentTimeIndex={currentTimeIndex}
-          translations={translations}
           timePoints={effectiveTimePoints}
           showDailyMax={showDailyMax}
         />
