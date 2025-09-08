@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useEffect, useMemo } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import {
   Map as MapGL,
   Source,
@@ -83,7 +83,6 @@ export function WbgtMapCore({
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const mapRef = useRef<MapRef>(null);
 
-  // feature-stateを適用する共通関数
   const updateFeatureStates = useCallback(
     (map: MapLibreMap) => {
       if (showDailyMax) {
@@ -94,7 +93,6 @@ export function WbgtMapCore({
         wbgtData.features.forEach(({ properties }) => {
           const id = properties.id;
           const valueByDate = properties.valueByDate;
-
           const dataForDate = valueByDate.find(
             (item: { date: string; wbgt: number }) => item.date === targetDate
           );
@@ -104,33 +102,46 @@ export function WbgtMapCore({
             { wbgt: wbgt }
           );
         });
-        return;
+      } else {
+        wbgtData.features.forEach(({ properties }) => {
+          map.setFeatureState(
+            { source: "wbgt-points", id: properties.id },
+            { wbgt: properties.valueByDateTime[currentTimeIndex] ?? 0 }
+          );
+        });
       }
-      wbgtData.features.forEach(({ properties }) => {
-        map.setFeatureState(
-          { source: "wbgt-points", id: properties.id },
-          { wbgt: properties.valueByDateTime[currentTimeIndex] ?? 0 }
-        );
-      });
-      return;
     },
     [currentTimeIndex, timePoints, showDailyMax, wbgtData]
+  );
+
+  const onLoad = useCallback(
+    (evt: { target: MapLibreMap }) => {
+      const map = evt.target;
+      const handleSourceData = () => {
+        if (map.isSourceLoaded("wbgt-points")) {
+          updateFeatureStates(map);
+        }
+      };
+      map.on("sourcedata", handleSourceData);
+      if (map.isSourceLoaded("wbgt-points")) {
+        updateFeatureStates(map);
+      }
+    },
+    [updateFeatureStates]
   );
 
   // 地図クリックのハンドラー
   const handleMapClick = useCallback((event: MapMouseEvent) => {
     const { features } = event;
+    const map = mapRef.current?.getMap();
 
-    if (!features || features.length === 0) {
+    if (!map || !features || features.length === 0) {
       setPopupInfo(null);
       return;
     }
 
     const feature = features[0];
     const { name, id } = feature.properties;
-    const map = mapRef.current?.getMap();
-
-    if (!map) return;
 
     const featureState = map.getFeatureState({
       source: "wbgt-points",
@@ -148,54 +159,13 @@ export function WbgtMapCore({
     });
   }, []);
 
-  // currentTimeIndex変更時にfeature-stateを更新
+  // currentTimeIndex, showDailyMax, wbgtData 変更時にfeature-stateを更新
   useEffect(() => {
-    if (!mapRef.current || timePoints.length === 0) return;
+    const map = mapRef.current?.getMap();
+    if (!map) return;
 
-    const map = mapRef.current.getMap();
-    if (map.getSource("wbgt-points")) {
-      updateFeatureStates(map);
-    }
-  }, [
-    currentTimeIndex,
-    timePoints,
-    updateFeatureStates,
-    showDailyMax,
-    wbgtData,
-  ]);
-
-  // マップロード時とソースデータ変更時の初期feature-state設定
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    const map = mapRef.current.getMap();
-
-    const handleSourceData = (e: {
-      sourceId: string;
-      isSourceLoaded: boolean;
-    }) => {
-      // wbgt-pointsソースのデータが実際にロードされた時のみ実行
-      if (
-        e.sourceId === "wbgt-points" &&
-        e.isSourceLoaded &&
-        map.getSource("wbgt-points")
-      ) {
-        updateFeatureStates(map);
-      }
-    };
-
-    // 既にロードされている場合は即座に実行
-    if (map.isStyleLoaded() && map.getSource("wbgt-points")) {
-      updateFeatureStates(map);
-    }
-
-    // sourcedata イベントでソースが利用可能になったときに実行
-    map.on("sourcedata", handleSourceData);
-
-    return () => {
-      map.off("sourcedata", handleSourceData);
-    };
-  }, [updateFeatureStates]);
+    updateFeatureStates(map);
+  }, [currentTimeIndex, showDailyMax, wbgtData, updateFeatureStates]);
 
   return (
     <div className="relative w-full h-full">
@@ -208,6 +178,7 @@ export function WbgtMapCore({
         }}
         style={{ width: "100%", height: "100%" }}
         mapStyle={baseMapStyle}
+        onLoad={onLoad}
         onClick={handleMapClick}
         interactiveLayerIds={["wbgt-circles"]}
       >
