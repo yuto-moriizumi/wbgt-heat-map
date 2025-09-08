@@ -7,7 +7,6 @@ import { MapRenderer } from "./MapRenderer";
 import { DailyMaxToggle } from "./DailyMaxToggle";
 import dayjs from "@/lib/dayjs";
 import { WbgtGeoJSON } from "@/lib/types";
-import { LEGEND_ITEMS } from "@/lib/wbgt-config";
 
 interface WbgtMapProps {
   wbgtData: WbgtGeoJSON;
@@ -29,23 +28,8 @@ export function PageClientComponent({
     stationName: tMap("stationName"),
     wbgt: tMap("wbgt"),
     riskLevel: tMap("riskLevel"),
-    legendTitle: tMap("legendTitle"),
-    disaster: tMap("disaster"),
-    extreme: tMap("extreme"),
-    danger: tMap("danger"),
-    caution: tMap("caution"),
-    warning: tMap("warning"),
-    attention: tMap("attention"),
-    safe: tMap("safe"),
     dailyMaxLabel: tMap("dailyMaxLabel"),
   }), [tMap]);
-
-  const legendItems = useMemo(() => {
-    return LEGEND_ITEMS.map((item: { color: string; level: string }) => ({
-      color: item.color,
-      label: translations[item.level as keyof typeof translations],
-    }));
-  }, [translations]);
 
   // times: initialTimePointsをそのまま使用
   const times = initialTimePoints;
@@ -130,25 +114,6 @@ export function PageClientComponent({
           label={translations.dailyMaxLabel || "日の最高値を表示"}
         />
 
-        {/* 凡例 */}
-        <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">
-          <h4 className="font-bold text-sm mb-2 text-black">
-            {translations.legendTitle}
-          </h4>
-          <div className="space-y-1 text-xs">
-            {legendItems.map(
-              (item: { color: string; label: string }, index: number) => (
-                <div key={index} className="flex items-center">
-                  <div
-                    className="w-4 h-4 rounded-full mr-2"
-                    style={{ backgroundColor: item.color }}
-                  ></div>
-                  <span className="text-black font-medium">{item.label}</span>
-                </div>
-              )
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

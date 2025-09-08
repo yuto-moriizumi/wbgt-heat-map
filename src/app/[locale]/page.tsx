@@ -1,6 +1,7 @@
 import { fetchWbgtData } from "@/lib/fetch-wbgt-data";
 import { WbgtDataResult } from "@/lib/types";
 import { PageClientComponent } from "@/components/PageClientComponent";
+import { Legend } from "@/components/Legend";
 import { getTranslations } from "next-intl/server";
 
 export default async function Home({
@@ -41,11 +42,14 @@ export default async function Home({
           )}
         </div>
       </header>
-      <PageClientComponent
-        wbgtData={wbgtBundle.geojson}
-        timePoints={wbgtBundle.timePoints}
-        showDailyMax={false}
-      />
+      <div className="relative">
+        <PageClientComponent
+          wbgtData={wbgtBundle.geojson}
+          timePoints={wbgtBundle.timePoints}
+          showDailyMax={false}
+        />
+        <Legend locale={locale} />
+      </div>
     </div>
   );
 }

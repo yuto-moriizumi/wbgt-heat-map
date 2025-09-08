@@ -1,6 +1,4 @@
-# Agent Instructions
-
-## Do checks before completing a task
+# Do checks before completing a task
 
 Do following check in order:
 
@@ -12,11 +10,11 @@ Do following check in order:
 
 Once all checks pass, you can consider the task complete.
 
-## Where is documentation
+# Where is documentation
 
 Project documentation is stored in the `docs` directory in Markdown files.
 
-## Don'ts
+# Don'ts
 
 - `page.tsx` must be a Server Component. Do not add `"use client"` directive.
 - Do not start the app with `npm run dev`. It must be already running.

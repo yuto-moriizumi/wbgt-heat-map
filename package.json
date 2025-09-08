@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "unused": "ts-unused-exports tsconfig.json",
+    "unused": "ts-unused-exports tsconfig.json --excludePathsFromReport='page.tsx;layout.tsx;.config'",
     "test": "vitest"
   },
   "dependencies": {
