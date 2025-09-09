@@ -9,7 +9,7 @@ import {
   MapRef,
   LayerProps,
 } from "react-map-gl/maplibre";
-import type { Map as MapLibreMap } from "maplibre-gl";
+import type { MapLibreEvent, Map as MapLibreMap } from "maplibre-gl";
 import type { Dayjs } from "dayjs";
 import {
   createMapLibreColorExpression,
@@ -101,17 +101,8 @@ export function MapRenderer({
 
   /** 初期ロード時にFeatureStateを設定 */
   const onLoad = useCallback(
-    (evt: { target: MapLibreMap }) => {
-      const map = evt.target;
-      const handleSourceData = () => {
-        if (map.isSourceLoaded("wbgt-points")) {
-          updateFeatureStates(map);
-        }
-      };
-      map.on("sourcedata", handleSourceData);
-      if (map.isSourceLoaded("wbgt-points")) {
-        updateFeatureStates(map);
-      }
+    (e: MapLibreEvent) => {
+      updateFeatureStates(e.target);
     },
     [updateFeatureStates]
   );
@@ -140,7 +131,7 @@ export function MapRenderer({
     const map = mapRef.current?.getMap();
     if (!map) return;
     updateFeatureStates(map);
-  }, [currentTimeIndex, showDailyMax, wbgtData, updateFeatureStates]);
+  }, [currentTimeIndex, showDailyMax, updateFeatureStates]);
 
   return (
     <MapGL
