@@ -71,30 +71,20 @@ export function MapRenderer({
   const updateFeatureStates = useCallback(
     (map: MapLibreMap) => {
       if (showDailyMax) {
-        const targetDate =
-          timePoints[currentTimeIndex]?.format("YYYY-MM-DD") || "";
-        if (!targetDate) return;
-
-        wbgtData.features.forEach(({ properties }) => {
-          const id = properties.id;
-          const valueByDate = properties.valueByDate;
-          const dataForDate = valueByDate.find(
-            (item: { date: string; wbgt: number }) => item.date === targetDate
-          );
-          const wbgt = dataForDate?.wbgt ?? 0;
-          map.setFeatureState(
-            { source: "wbgt-points", id: id },
-            { wbgt: wbgt }
-          );
-        });
-      } else {
         wbgtData.features.forEach(({ properties }) => {
           map.setFeatureState(
             { source: "wbgt-points", id: properties.id },
-            { wbgt: properties.valueByDateTime[currentTimeIndex] ?? 0 }
+            { wbgt: properties.valueByDate[currentTimeIndex].wbgt ?? 0 }
           );
         });
+        return;
       }
+      wbgtData.features.forEach(({ properties }) => {
+        map.setFeatureState(
+          { source: "wbgt-points", id: properties.id },
+          { wbgt: properties.valueByDateTime[currentTimeIndex] ?? 0 }
+        );
+      });
     },
     [currentTimeIndex, timePoints, showDailyMax, wbgtData]
   );
