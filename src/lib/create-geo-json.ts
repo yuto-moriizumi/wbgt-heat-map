@@ -2,6 +2,7 @@ import { parse } from "csv-parse/sync";
 import dayjs from "./dayjs";
 import { TimeSeriesData, WbgtGeoJSON, WbgtDataResult, Station } from "./types";
 import { normalizeDateTime } from "./utils";
+import { calculateDailyAverage } from "./wbgt-calculator";
 
 function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
   // CSVをパース
@@ -105,11 +106,23 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
         }
       });
 
+      // 日付ごとの平均値を計算
+      const averageWbgtByDate: { [date: string]: number } = {};
+      const uniqueDates = Array.from(new Set(timeSeriesData.map(data => data.time.split(" ")[0])));
+      uniqueDates.forEach(date => {
+        averageWbgtByDate[date] = calculateDailyAverage(timeSeriesData, date);
+      });
+
       // valueByDateを作成
       const valueByDate = Object.entries(maxWbgtByDate).map(([date, wbgt]) => ({
         date,
         wbgt,
       }));
+
+      // valueByDateAverageを作成
+      const valueByDateAverage = Object.entries(averageWbgtByDate)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([, wbgt]) => wbgt);
 
       return {
         type: "Feature" as const,
@@ -119,6 +132,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
           name: station.name,
           valueByDateTime: timeSeriesData.map(data => data.wbgt),
           valueByDate: valueByDate,
+          valueByDateAverage: valueByDateAverage,
         },
         geometry: {
           type: "Point" as const,

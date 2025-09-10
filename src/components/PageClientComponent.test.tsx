@@ -10,7 +10,7 @@ vi.mock("./MapRenderer", () => ({
   MapRenderer: (props: {
     wbgtData: WbgtGeoJSON;
     currentTimeIndex: number;
-    showDailyMax?: boolean;
+    displayMode?: 'HOURLY' | 'DAILY_MAX' | 'DAILY_AVERAGE';
   }) => {
     mockMapRenderer(props);
     return <div data-testid="mock-map-renderer" />;
@@ -66,21 +66,21 @@ describe("PageClientComponent", () => {
     const lastCallProps = mockMapRenderer.mock.calls[0][0];
     expect(lastCallProps.wbgtData).toEqual(mockWbgtData);
     expect(lastCallProps.currentTimeIndex).toBe(0);
-    expect(lastCallProps.showDailyMax).toBe(false);
+    expect(lastCallProps.displayMode).toBe('HOURLY');
   });
 
-  it("should update props for MapRenderer when DailyMaxToggle is clicked", () => {
+  it("should update props for MapRenderer when DisplayModeSelector is clicked", () => {
     render(
       <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
     );
 
-    const checkbox = screen.getByLabelText("Show daily max");
-    fireEvent.click(checkbox);
+    const radio = screen.getByDisplayValue("DAILY_MAX");
+    fireEvent.click(radio);
 
     expect(mockMapRenderer).toHaveBeenCalledTimes(2);
     const lastCallProps = mockMapRenderer.mock.calls[1][0];
 
-    expect(lastCallProps.showDailyMax).toBe(true);
+    expect(lastCallProps.displayMode).toBe('DAILY_MAX');
     expect(lastCallProps.currentTimeIndex).toBe(0); // Should reset to 0
   });
 
@@ -96,6 +96,7 @@ describe("PageClientComponent", () => {
     const lastCallProps = mockMapRenderer.mock.calls[1][0];
 
     expect(lastCallProps.currentTimeIndex).toBe(2);
+    expect(lastCallProps.displayMode).toBe('HOURLY');
   });
 
   it("should toggle isPlaying state when play/pause button is clicked", () => {
@@ -119,5 +120,9 @@ describe("PageClientComponent", () => {
 
     // After second click: should show "再生" (Play) button again
     expect(screen.getByTitle("再生")).toBeInTheDocument();
+
+    // Check that displayMode is still HOURLY
+    const lastCallProps = mockMapRenderer.mock.calls[mockMapRenderer.mock.calls.length - 1][0];
+    expect(lastCallProps.displayMode).toBe('HOURLY');
   });
 });

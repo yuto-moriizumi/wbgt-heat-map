@@ -56,6 +56,13 @@ const WBGT_LEVELS: WbgtLevel[] = [
 // データなし（WBGT値が0）の場合の色
 const NO_DATA_COLOR = "#808080";
 
+// 表示モードの定義
+export const DISPLAY_MODES = {
+  HOURLY: "HOURLY",
+  DAILY_MAX: "DAILY_MAX",
+  DAILY_AVERAGE: "DAILY_AVERAGE",
+};
+
 // マップストロークの色
 export const CIRCLE_STROKE_COLOR = "#ffffff";
 

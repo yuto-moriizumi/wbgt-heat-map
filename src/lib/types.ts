@@ -8,11 +8,13 @@ interface DailyMaxData {
   wbgt: number;
 }
 
+
 interface WbgtProperties {
   id: string;
   name: string;
   valueByDateTime: number[];
   valueByDate: DailyMaxData[];
+  valueByDateAverage: number[];
 }
 
 export type WbgtGeoJSON = GeoJSON.FeatureCollection<

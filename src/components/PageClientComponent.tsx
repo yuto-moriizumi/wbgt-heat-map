@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { useTranslations } from "next-intl";
 import { TimeSlider } from "./TimeSlider";
 import { MapRenderer } from "./MapRenderer";
-import { DailyMaxToggle } from "./DailyMaxToggle";
+import { DisplayModeSelector } from "./DisplayModeSelector";
 import dayjs from "@/lib/dayjs";
 import { WbgtGeoJSON } from "@/lib/types";
 
@@ -14,20 +13,9 @@ interface WbgtMapProps {
 }
 
 export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
-  const tMap = useTranslations("WbgtMap");
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showDailyMax, setShowDailyMax] = useState(false);
-
-  const translations = useMemo(
-    () => ({
-      stationName: tMap("stationName"),
-      wbgt: tMap("wbgt"),
-      riskLevel: tMap("riskLevel"),
-      dailyMaxLabel: tMap("dailyMaxLabel"),
-    }),
-    [tMap]
-  );
+  const [displayMode, setDisplayMode] = useState<'HOURLY' | 'DAILY_MAX' | 'DAILY_AVERAGE'>('HOURLY');
 
   // dates: timesから各日時を取り出したもの（日別の一意な日付）
   const dates = useMemo(() => {
@@ -41,11 +29,11 @@ export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
 
   // timePointsを計算値として定義
   const timePoints = useMemo(() => {
-    if (showDailyMax) {
+    if (displayMode === 'DAILY_MAX' || displayMode === 'DAILY_AVERAGE') {
       return dates.map((date) => dayjs(date).startOf("day").toISOString());
     }
     return times;
-  }, [showDailyMax, dates, times]);
+  }, [displayMode, dates, times]);
 
   // ISO文字列をDayjsオブジェクトに復元
   const parsedTimePoints = useMemo(() => {
@@ -71,9 +59,9 @@ export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
     setIsPlaying((prev) => !prev);
   }, []);
 
-  // showDailyMax変更ハンドラー
-  const handleShowDailyMaxChange = useCallback((show: boolean) => {
-    setShowDailyMax(show);
+  // displayMode変更ハンドラー
+  const handleDisplayModeChange = useCallback((mode: 'HOURLY' | 'DAILY_MAX' | 'DAILY_AVERAGE') => {
+    setDisplayMode(mode);
     setCurrentTimeIndex(0); // インデックスをリセット
   }, []);
 
@@ -82,7 +70,7 @@ export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
       <MapRenderer
         wbgtData={wbgtData}
         currentTimeIndex={currentTimeIndex}
-        showDailyMax={showDailyMax}
+        displayMode={displayMode}
       />
 
       {/* 時系列スライダー */}
@@ -95,16 +83,15 @@ export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
             isPlaying={isPlaying}
             onPlayToggle={handlePlayToggle}
             playbackSpeed={500}
-            isDailyMaxMode={showDailyMax}
+            isDailyMaxMode={displayMode === 'DAILY_MAX' || displayMode === 'DAILY_AVERAGE'}
           />
         </div>
       )}
 
-      {/* 日最高値表示チェックボックス */}
-      <DailyMaxToggle
-        showDailyMax={showDailyMax}
-        onShowDailyMaxChange={handleShowDailyMaxChange}
-        label={translations.dailyMaxLabel || "日の最高値を表示"}
+      {/* 表示モード選択 */}
+      <DisplayModeSelector
+        displayMode={displayMode}
+        onDisplayModeChange={handleDisplayModeChange}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Map as MapGL,
   Source,
@@ -8,7 +8,6 @@ import {
   MapMouseEvent,
   MapRef,
   LayerProps,
-  AttributionControl,
   GeolocateControl,
   ScaleControl,
   NavigationControl,
@@ -58,24 +57,33 @@ const wbgtLayer: LayerProps = {
 interface WbgtMapCoreProps {
   wbgtData: WbgtGeoJSON;
   currentTimeIndex: number;
-  showDailyMax?: boolean;
+  displayMode?: "HOURLY" | "DAILY_MAX" | "DAILY_AVERAGE";
 }
 
 export function MapRenderer({
   wbgtData,
   currentTimeIndex,
-  showDailyMax = false,
+  displayMode = "HOURLY",
 }: WbgtMapCoreProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
   const mapRef = useRef<MapRef>(null);
 
   const updateFeatureStates = useCallback(
     (map: MapLibreMap) => {
-      if (showDailyMax) {
+      if (displayMode === "DAILY_MAX") {
         wbgtData.features.forEach(({ properties }) => {
           map.setFeatureState(
             { source: "wbgt-points", id: properties.id },
             { wbgt: properties.valueByDate[currentTimeIndex].wbgt ?? 0 }
+          );
+        });
+        return;
+      }
+      if (displayMode === "DAILY_AVERAGE") {
+        wbgtData.features.forEach(({ properties }) => {
+          map.setFeatureState(
+            { source: "wbgt-points", id: properties.id },
+            { wbgt: properties.valueByDateAverage[currentTimeIndex] ?? 0 }
           );
         });
         return;
@@ -87,7 +95,7 @@ export function MapRenderer({
         );
       });
     },
-    [currentTimeIndex, showDailyMax, wbgtData]
+    [currentTimeIndex, displayMode, wbgtData]
   );
 
   /** 初期ロード時にFeatureStateを設定 */
@@ -122,7 +130,7 @@ export function MapRenderer({
     const map = mapRef.current?.getMap();
     if (!map) return;
     updateFeatureStates(map);
-  }, [currentTimeIndex, showDailyMax, updateFeatureStates]);
+  }, [updateFeatureStates]);
 
   return (
     <MapGL
@@ -148,7 +156,9 @@ export function MapRenderer({
         <WbgtPopup
           popupInfo={popupInfo}
           onClose={() => setPopupInfo(null)}
-          showDailyMax={showDailyMax}
+          showDailyMax={
+            displayMode === "DAILY_MAX" || displayMode === "DAILY_AVERAGE"
+          }
         />
       )}
     </MapGL>
