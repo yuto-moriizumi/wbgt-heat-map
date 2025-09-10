@@ -3,7 +3,6 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { PageClientComponent } from "./PageClientComponent";
 import { WbgtGeoJSON } from "@/lib/types";
-import dayjs from "dayjs";
 
 // Mock MapRenderer
 const mockMapRenderer = vi.fn();
