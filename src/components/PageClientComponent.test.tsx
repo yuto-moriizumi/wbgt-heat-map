@@ -1,4 +1,3 @@
-
 import React from "react";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -59,10 +58,7 @@ describe("PageClientComponent", () => {
 
   it("should render correctly and pass initial props to MapRenderer", () => {
     render(
-      <PageClientComponent
-        wbgtData={mockWbgtData}
-        timePoints={mockTimePoints}
-      />
+      <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
     );
 
     expect(screen.getByTestId("mock-map-renderer")).toBeInTheDocument();
@@ -76,10 +72,7 @@ describe("PageClientComponent", () => {
 
   it("should update props for MapRenderer when DailyMaxToggle is clicked", () => {
     render(
-      <PageClientComponent
-        wbgtData={mockWbgtData}
-        timePoints={mockTimePoints}
-      />
+      <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
     );
 
     const checkbox = screen.getByLabelText("Show daily max");
@@ -94,10 +87,7 @@ describe("PageClientComponent", () => {
 
   it("should update currentTimeIndex when TimeSlider is changed", () => {
     render(
-      <PageClientComponent
-        wbgtData={mockWbgtData}
-        timePoints={mockTimePoints}
-      />
+      <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
     );
 
     const slider = screen.getByRole("slider");
@@ -111,10 +101,7 @@ describe("PageClientComponent", () => {
 
   it("should toggle isPlaying state when play/pause button is clicked", () => {
     render(
-      <PageClientComponent
-        wbgtData={mockWbgtData}
-        timePoints={mockTimePoints}
-      />
+      <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
     );
 
     // Initial state: should show "再生" (Play) button

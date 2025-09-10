@@ -10,13 +10,13 @@ import { WbgtGeoJSON } from "@/lib/types";
 
 interface WbgtMapProps {
   wbgtData: WbgtGeoJSON;
-  timePoints: string[];
+  times: string[];
   showDailyMax?: boolean;
 }
 
 export function PageClientComponent({
   wbgtData: initialWbgtData,
-  timePoints: initialTimePoints,
+  times,
   showDailyMax: initialShowDailyMax = false,
 }: WbgtMapProps) {
   const tMap = useTranslations("WbgtMap");
@@ -33,9 +33,6 @@ export function PageClientComponent({
     }),
     [tMap]
   );
-
-  // times: initialTimePointsをそのまま使用
-  const times = initialTimePoints;
 
   // dates: timesから各日時を取り出したもの（日別の一意な日付）
   const dates = useMemo(() => {

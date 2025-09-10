@@ -44,7 +44,7 @@ export default async function Home({
       </header>
       <PageClientComponent
         wbgtData={wbgtBundle.geojson}
-        timePoints={wbgtBundle.timePoints}
+        times={wbgtBundle.timePoints}
         showDailyMax={false}
       />
       <Legend locale={locale} />
