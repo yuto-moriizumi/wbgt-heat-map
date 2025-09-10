@@ -23,5 +23,13 @@
     "hourly": "Hourly",
     "dailyMax": "Daily Max",
     "dailyAverage": "Daily Average"
+  },
+  "TimeSlider": {
+    "timeSelection": "Time Selection",
+    "dateSelection": "Date Selection",
+    "play": "Play",
+    "pause": "Pause",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

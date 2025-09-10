@@ -23,5 +23,13 @@
     "hourly": "1時間ごと",
     "dailyMax": "日最高値",
     "dailyAverage": "日平均値"
+  },
+  "TimeSlider": {
+    "timeSelection": "時刻選択",
+    "dateSelection": "日付選択",
+    "play": "再生",
+    "pause": "一時停止",
+    "previous": "前へ",
+    "next": "次へ"
   }
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useCallback } from "react";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Dayjs } from "dayjs";
 
 interface TimeSliderProps {
@@ -17,17 +18,6 @@ interface TimeSliderProps {
   onPlayToggle: () => void;
   /** 再生速度（ミリ秒単位、オプション） */
   playbackSpeed?: number;
-  /** 翻訳オブジェクト（オプション） */
-  translations?: {
-    /** 再生ボタンのテキスト */
-    play?: string;
-    /** 停止ボタンのテキスト */
-    pause?: string;
-    /** 前へボタンのテキスト */
-    previous?: string;
-    /** 次へボタンのテキスト */
-    next?: string;
-  };
   /** 日最高値モードかどうか */
   isDailyMaxMode?: boolean;
 }
@@ -39,14 +29,10 @@ export function TimeSlider({
   isPlaying,
   onPlayToggle,
   playbackSpeed = 500,
-  translations = {
-    play: "再生",
-    pause: "一時停止",
-    previous: "前へ",
-    next: "次へ",
-  },
   isDailyMaxMode = false,
 }: TimeSliderProps) {
+  const t = useTranslations("TimeSlider");
+
   // 自動再生機能
   useEffect(() => {
     if (!isPlaying || timePoints.length <= 1) return;
@@ -105,7 +91,7 @@ export function TimeSlider({
     <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-80">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium text-gray-700">
-          {isDailyMaxMode ? "日付選択" : "時刻選択"}
+          {isDailyMaxMode ? t("dateSelection") : t("timeSelection")}
         </h3>
         <div className="text-xs text-gray-500">
           {currentTimeIndex + 1} / {timePoints.length}
@@ -140,29 +126,29 @@ export function TimeSlider({
 
        {/* コントロールボタン */}
        <div className="flex items-center justify-center gap-2">
-         <button
-           onClick={handlePrevious}
-           className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-           title={translations.previous}
-         >
-           <SkipBack size={16} className="text-gray-700" />
-         </button>
+          <button
+            onClick={handlePrevious}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+            title={t("previous")}
+          >
+            <SkipBack size={16} className="text-gray-700" />
+          </button>
 
-         <button
-           onClick={onPlayToggle}
-           className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-           title={isPlaying ? translations.pause : translations.play}
-         >
-           {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-         </button>
+          <button
+            onClick={onPlayToggle}
+            className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+            title={isPlaying ? t("pause") : t("play")}
+          >
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+          </button>
 
-         <button
-           onClick={handleNext}
-           className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-           title={translations.next}
-         >
-           <SkipForward size={16} className="text-gray-700" />
-         </button>
+          <button
+            onClick={handleNext}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+            title={t("next")}
+          >
+            <SkipForward size={16} className="text-gray-700" />
+          </button>
        </div>
 
       <style jsx>{`
