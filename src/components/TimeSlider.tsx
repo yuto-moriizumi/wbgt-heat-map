@@ -49,8 +49,6 @@ export function TimeSlider({
 }: TimeSliderProps) {
   // 自動再生機能
   useEffect(() => {
-    // 日最高値モードでは自動再生を無効化
-    if (isDailyMaxMode) return;
     if (!isPlaying || timePoints.length <= 1) return;
 
     const interval = setInterval(() => {
@@ -64,7 +62,6 @@ export function TimeSlider({
     timePoints.length,
     playbackSpeed,
     onTimeChange,
-    isDailyMaxMode,
   ]);
 
   const handlePrevious = useCallback(() => {
@@ -141,34 +138,32 @@ export function TimeSlider({
         />
       </div>
 
-      {/* コントロールボタン - 日最高値モードでは非表示 */}
-      {!isDailyMaxMode && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={handlePrevious}
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-            title={translations.previous}
-          >
-            <SkipBack size={16} className="text-gray-700" />
-          </button>
+       {/* コントロールボタン */}
+       <div className="flex items-center justify-center gap-2">
+         <button
+           onClick={handlePrevious}
+           className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+           title={translations.previous}
+         >
+           <SkipBack size={16} className="text-gray-700" />
+         </button>
 
-          <button
-            onClick={onPlayToggle}
-            className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
-            title={isPlaying ? translations.pause : translations.play}
-          >
-            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </button>
+         <button
+           onClick={onPlayToggle}
+           className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+           title={isPlaying ? translations.pause : translations.play}
+         >
+           {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+         </button>
 
-          <button
-            onClick={handleNext}
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-            title={translations.next}
-          >
-            <SkipForward size={16} className="text-gray-700" />
-          </button>
-        </div>
-      )}
+         <button
+           onClick={handleNext}
+           className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+           title={translations.next}
+         >
+           <SkipForward size={16} className="text-gray-700" />
+         </button>
+       </div>
 
       <style jsx>{`
         .slider::-webkit-slider-thumb {
