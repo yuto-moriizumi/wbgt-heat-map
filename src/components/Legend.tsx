@@ -14,7 +14,7 @@ export async function Legend({ locale }: LegendProps) {
   }));
 
   return (
-    <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-lg">
+    <div className="absolute bottom-10 left-2 bg-white p-3 rounded-lg shadow-lg">
       <h4 className="font-bold text-sm mb-2 text-black">
         {tMap("legendTitle")}
       </h4>

@@ -10,6 +10,8 @@ import {
   LayerProps,
   AttributionControl,
   GeolocateControl,
+  ScaleControl,
+  NavigationControl,
 } from "react-map-gl/maplibre";
 import type { MapLibreEvent, Map as MapLibreMap } from "maplibre-gl";
 import {
@@ -135,9 +137,9 @@ export function MapRenderer({
       onLoad={onLoad}
       onClick={handleMapClick}
       interactiveLayerIds={["wbgt-circles"]}
-      attributionControl={false}
     >
-      <AttributionControl compact={false} position="bottom-right" />
+      <NavigationControl position="bottom-right" />
+      <ScaleControl position="bottom-left" />
       <GeolocateControl position="bottom-right" />
       <Source id="wbgt-points" type="geojson" data={wbgtData}>
         <Layer {...wbgtLayer} />
