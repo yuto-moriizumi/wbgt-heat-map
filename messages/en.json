@@ -17,5 +17,11 @@
     "attention": "Attention (21+)",
     "safe": "Almost safe (<21)",
     "dailyMaxLabel": "Daily maximum"
+  },
+  "DisplayMode": {
+    "title": "Display Mode",
+    "hourly": "Hourly",
+    "dailyMax": "Daily Max",
+    "dailyAverage": "Daily Average"
   }
 }
