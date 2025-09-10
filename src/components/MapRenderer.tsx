@@ -137,8 +137,8 @@ export function MapRenderer({
       interactiveLayerIds={["wbgt-circles"]}
       attributionControl={false}
     >
-      <AttributionControl compact={false} />
-      <GeolocateControl position="top-right" />
+      <AttributionControl compact={false} position="bottom-right" />
+      <GeolocateControl position="bottom-right" />
       <Source id="wbgt-points" type="geojson" data={wbgtData}>
         <Layer {...wbgtLayer} />
       </Source>
