@@ -1,5 +1,8 @@
-import { beforeAll, afterEach, afterAll } from 'vitest'
+import { expect, beforeAll, afterEach, afterAll } from 'vitest'
 import { setupServer } from 'msw/node'
+import * as matchers from '@testing-library/jest-dom/matchers'
+
+expect.extend(matchers)
 
 // Setup MSW server without default handlers
 const server = setupServer()

@@ -10,7 +10,6 @@ import {
   LayerProps,
 } from "react-map-gl/maplibre";
 import type { MapLibreEvent, Map as MapLibreMap } from "maplibre-gl";
-import type { Dayjs } from "dayjs";
 import {
   createMapLibreColorExpression,
   CIRCLE_STROKE_COLOR,
@@ -55,14 +54,12 @@ const wbgtLayer: LayerProps = {
 interface WbgtMapCoreProps {
   wbgtData: WbgtGeoJSON;
   currentTimeIndex: number;
-  timePoints: Dayjs[];
   showDailyMax?: boolean;
 }
 
 export function MapRenderer({
   wbgtData,
   currentTimeIndex,
-  timePoints,
   showDailyMax = false,
 }: WbgtMapCoreProps) {
   const [popupInfo, setPopupInfo] = useState<PopupInfo | null>(null);
@@ -86,7 +83,7 @@ export function MapRenderer({
         );
       });
     },
-    [currentTimeIndex, timePoints, showDailyMax, wbgtData]
+    [currentTimeIndex, showDailyMax, wbgtData]
   );
 
   /** 初期ロード時にFeatureStateを設定 */

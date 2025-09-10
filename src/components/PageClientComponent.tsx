@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { TimeSlider } from "./TimeSlider";
 import { MapRenderer } from "./MapRenderer";
@@ -44,7 +44,7 @@ export function PageClientComponent({
       const date = dayjs(timePoint).format("YYYY-MM-DD");
       dateSet.add(date);
     });
-    return Array.from(dateSet).sort().reverse();
+    return Array.from(dateSet).sort();
   }, [times]);
 
   // timePointsを計算値として定義
@@ -90,7 +90,6 @@ export function PageClientComponent({
       <MapRenderer
         wbgtData={initialWbgtData}
         currentTimeIndex={currentTimeIndex}
-        timePoints={effectiveTimePoints}
         showDailyMax={showDailyMax}
       />
 

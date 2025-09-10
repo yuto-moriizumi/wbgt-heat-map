@@ -5,6 +5,15 @@ import { server } from './test-setup'
 import { http, HttpResponse } from 'msw'
 import dayjs from './dayjs'
 
+// Mock getStations
+vi.mock('./get-stations', () => ({
+  getStations: vi.fn(() => Promise.resolve([
+    { id: '11001', name: 'Tokyo', lat: 35.6895, lng: 139.6917 },
+    { id: '11016', name: 'Yokohama', lat: 35.4437, lng: 139.6380 },
+    { id: '12011', name: 'Chiba', lat: 35.6051, lng: 140.1233 }
+  ]))
+}))
+
 // Mock CSV data generator
 const generateMockCsvData = (yearMonth: string) => {
   const year = yearMonth.slice(0, 4)
