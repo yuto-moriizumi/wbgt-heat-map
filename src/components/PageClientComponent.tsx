@@ -11,18 +11,13 @@ import { WbgtGeoJSON } from "@/lib/types";
 interface WbgtMapProps {
   wbgtData: WbgtGeoJSON;
   times: string[];
-  showDailyMax?: boolean;
 }
 
-export function PageClientComponent({
-  wbgtData: initialWbgtData,
-  times,
-  showDailyMax: initialShowDailyMax = false,
-}: WbgtMapProps) {
+export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
   const tMap = useTranslations("WbgtMap");
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showDailyMax, setShowDailyMax] = useState(initialShowDailyMax);
+  const [showDailyMax, setShowDailyMax] = useState(false);
 
   const translations = useMemo(
     () => ({
@@ -85,7 +80,7 @@ export function PageClientComponent({
   return (
     <div className="h-[calc(100vh)]">
       <MapRenderer
-        wbgtData={initialWbgtData}
+        wbgtData={wbgtData}
         currentTimeIndex={currentTimeIndex}
         showDailyMax={showDailyMax}
       />
