@@ -27,3 +27,12 @@
 - [ ] 数日後、できれば一週間後までの予測が見れること
 - [ ] SEO 対策とアクセス解析
   - [ ] TwitterOGP、シェアボタンなど
+
+# 天気について
+
+無料・少額で利用できる天気 API は https://weather.tsukumijima.net/ のみ。他に全世界対象の API などあるが精度低い。
+気象庁のエリア区分 → https://www.jma.go.jp/bosai/common/const/area.json
+奥多摩や東京西部とかでの取得はできない。東京地方のみ。
+これはツクミジマが悪いのではなく、元にしている気象庁非公式 API が奥多摩とかを提供していないため。https://www.jma.go.jp/bosai/forecast/data/forecast/130014.json
+
+https://zenn.dev/obaba/scraps/3a4102065174d2
