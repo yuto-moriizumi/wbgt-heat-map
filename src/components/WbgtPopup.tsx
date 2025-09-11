@@ -14,14 +14,12 @@ interface WbgtPopupProps {
   popupInfo: PopupInfo;
   wbgt: number;
   onClose: () => void;
-  showDailyMax: boolean;
 }
 
 export function WbgtPopup({
   popupInfo,
   wbgt,
   onClose,
-  showDailyMax,
 }: WbgtPopupProps) {
   const tMap = useTranslations("WbgtMap");
   
@@ -72,11 +70,6 @@ export function WbgtPopup({
           {wbgt}
         </p>
         <p className="text-sm text-black font-medium">{translatedRiskLevel}</p>
-        {showDailyMax && (
-          <p className="text-xs text-gray-600 mt-1">
-            {tMap("dailyMaxLabel")}
-          </p>
-        )}
         <p className="text-xs text-gray-700 mt-1">
           {tMap("stationName")}: {popupInfo.id}
         </p>

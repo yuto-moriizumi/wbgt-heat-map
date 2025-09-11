@@ -147,9 +147,6 @@ export function MapRenderer({
           popupInfo={popupInfo}
           wbgt={popupWbgt}
           onClose={() => setPopupInfo(null)}
-          showDailyMax={
-            displayMode === "DAILY_MAX" || displayMode === "DAILY_AVERAGE"
-          }
         />
       )}
     </MapGL>

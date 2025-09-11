@@ -15,8 +15,7 @@
     "caution": "厳重警戒(28~)",
     "warning": "警戒(25~)",
     "attention": "注意(21~)",
-    "safe": "ほぼ安全(~21)",
-    "dailyMaxLabel": "本日の最高値"
+    "safe": "ほぼ安全(~21)"
   },
   "DisplayMode": {
     "title": "表示モード",

@@ -15,8 +15,7 @@
     "caution": "Caution (28+)",
     "warning": "Warning (25+)",
     "attention": "Attention (21+)",
-    "safe": "Almost safe (<21)",
-    "dailyMaxLabel": "Daily maximum"
+    "safe": "Almost safe (<21)"
   },
   "DisplayMode": {
     "title": "Display Mode",
