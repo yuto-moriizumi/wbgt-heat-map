@@ -7,7 +7,7 @@ export interface WbgtProperties {
   id: string;
   name: string;
   valueByDateTime: number[];
-  valueByDate: number[];
+  maxByDate: number[];
   valueByDateAverage: number[];
 }
 

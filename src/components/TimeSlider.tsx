@@ -4,6 +4,7 @@ import React, { useEffect, useCallback } from "react";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { Dayjs } from "dayjs";
+import type { DisplayMode } from "../lib/types";
 
 interface TimeSliderProps {
   /** 時間ポイントのDayjsオブジェクト配列 */
@@ -18,8 +19,8 @@ interface TimeSliderProps {
   onPlayToggle: () => void;
   /** 再生速度（ミリ秒単位、オプション） */
   playbackSpeed?: number;
-  /** 日最高値モードかどうか */
-  isDailyMaxMode?: boolean;
+  /** 表示モード */
+  displayMode: DisplayMode;
 }
 
 export function TimeSlider({
@@ -29,7 +30,7 @@ export function TimeSlider({
   isPlaying,
   onPlayToggle,
   playbackSpeed = 500,
-  isDailyMaxMode = false,
+  displayMode,
 }: TimeSliderProps) {
   const t = useTranslations("TimeSlider");
 
@@ -75,8 +76,8 @@ export function TimeSlider({
 
   const formatTime = (timeObj: Dayjs): string => {
     try {
-      if (isDailyMaxMode) {
-        // 日最高値モードでは日付のみ表示
+      if (displayMode === 'DAILY_MAX' || displayMode === 'DAILY_AVERAGE') {
+        // 日次モードでは日付のみ表示
         return timeObj.format('YYYY/MM/DD');
       } else {
         // 通常モードではM/D HH:mm形式
@@ -91,7 +92,7 @@ export function TimeSlider({
     <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 min-w-80">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium text-gray-700">
-          {isDailyMaxMode ? t("dateSelection") : t("timeSelection")}
+          {displayMode === 'DAILY_MAX' || displayMode === 'DAILY_AVERAGE' ? t("dateSelection") : t("timeSelection")}
         </h3>
         <div className="text-xs text-gray-500">
           {currentTimeIndex + 1} / {timePoints.length}

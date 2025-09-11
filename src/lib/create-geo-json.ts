@@ -113,8 +113,8 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
         averageWbgtByDate[date] = calculateDailyAverage(timeSeriesData, date);
       });
 
-      // valueByDateを作成
-      const valueByDate = Object.entries(maxWbgtByDate).map(([, wbgt]) => wbgt);
+      // maxByDateを作成
+      const maxByDate = Object.entries(maxWbgtByDate).map(([, wbgt]) => wbgt);
 
       // valueByDateAverageを作成
       const valueByDateAverage = Object.entries(averageWbgtByDate)
@@ -128,7 +128,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
           id: trimmedStationId,
           name: station.name,
           valueByDateTime: timeSeriesData.map(data => data.wbgt),
-          valueByDate: valueByDate,
+          maxByDate: maxByDate,
           valueByDateAverage: valueByDateAverage,
         },
         geometry: {

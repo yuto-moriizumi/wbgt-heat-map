@@ -99,17 +99,17 @@ describe('fetchWbgtData', () => {
       }
     })
     
-    // valueByDate detailed validation
-    const valueByDate = firstFeature.properties.valueByDate
-    expect(Array.isArray(valueByDate)).toBe(true)
-    expect(valueByDate.length).toBeGreaterThan(0)
+    // maxByDate detailed validation
+    const maxByDate = firstFeature.properties.maxByDate
+    expect(Array.isArray(maxByDate)).toBe(true)
+    expect(maxByDate.length).toBeGreaterThan(0)
     
-    // Check each valueByDate entry structure
-    valueByDate.forEach(wbgt => {
+    // Check each maxByDate entry structure
+    maxByDate.forEach(wbgt => {
       expect(typeof wbgt).toBe('number')
     })
     
-    // Verify that valueByDate contains daily maximum values
+    // Verify that maxByDate contains daily maximum values
     const dateTimeByDate: { [date: string]: number[] } = {}
     result.timePoints.forEach((timePointIso, index) => {
       const timePoint = dayjs(timePointIso)
@@ -121,8 +121,8 @@ describe('fetchWbgtData', () => {
       dateTimeByDate[date].push(wbgt)
     })
     
-    // Check that each date in valueByDate has the maximum value from valueByDateTime
-    valueByDate.forEach((wbgt, index) => {
+    // Check that each date in maxByDate has the maximum value from valueByDateTime
+    maxByDate.forEach((wbgt, index) => {
       const date = Object.keys(dateTimeByDate)[index]
       const valuesForDate = dateTimeByDate[date]
       expect(valuesForDate).toBeDefined()
@@ -130,7 +130,7 @@ describe('fetchWbgtData', () => {
       expect(wbgt).toBe(maxValueForDate)
     })
     
-    // Verify data consistency between valueByDateTime and valueByDate
+    // Verify data consistency between valueByDateTime and maxByDate
     const uniqueDatesFromTimePoints = new Set(result.timePoints.map(timePointIso => {
       const timePoint = dayjs(timePointIso)
       return timePoint.format('YYYY/MM/DD')

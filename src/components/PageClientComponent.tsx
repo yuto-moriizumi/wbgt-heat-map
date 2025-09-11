@@ -83,7 +83,7 @@ export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
             isPlaying={isPlaying}
             onPlayToggle={handlePlayToggle}
             playbackSpeed={500}
-            isDailyMaxMode={displayMode === 'DAILY_MAX' || displayMode === 'DAILY_AVERAGE'}
+            displayMode={displayMode}
           />
         </div>
       )}

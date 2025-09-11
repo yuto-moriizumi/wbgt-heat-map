@@ -23,7 +23,7 @@ export function getWbgtValue(
   displayMode: DisplayMode
 ): number {
   if (displayMode === "DAILY_MAX") {
-    return properties.valueByDate[timeIndex] ?? 0;
+    return properties.maxByDate[timeIndex] ?? 0;
   }
   if (displayMode === "DAILY_AVERAGE") {
     return properties.valueByDateAverage[timeIndex] ?? 0;
