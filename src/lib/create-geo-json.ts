@@ -114,10 +114,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
       });
 
       // valueByDateを作成
-      const valueByDate = Object.entries(maxWbgtByDate).map(([date, wbgt]) => ({
-        date,
-        wbgt,
-      }));
+      const valueByDate = Object.entries(maxWbgtByDate).map(([, wbgt]) => wbgt);
 
       // valueByDateAverageを作成
       const valueByDateAverage = Object.entries(averageWbgtByDate)

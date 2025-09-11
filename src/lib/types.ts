@@ -3,16 +3,11 @@ export interface TimeSeriesData {
   wbgt: number;
 }
 
-interface DailyMaxData {
-  date: string;
-  wbgt: number;
-}
-
 export interface WbgtProperties {
   id: string;
   name: string;
   valueByDateTime: number[];
-  valueByDate: DailyMaxData[];
+  valueByDate: number[];
   valueByDateAverage: number[];
 }
 
