@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   Map as MapGL,
   Source,
@@ -17,7 +17,8 @@ import {
   createMapLibreColorExpression,
   CIRCLE_STROKE_COLOR,
 } from "@/lib/wbgt-config";
-import { WbgtGeoJSON } from "@/lib/types";
+import { WbgtGeoJSON, DisplayMode } from "@/lib/types";
+import { getWbgtValue } from "@/lib/utils";
 import { WbgtPopup, type PopupInfo } from "./WbgtPopup";
 
 // マップスタイルをコンポーネント外に定義（ちらつき防止）
@@ -57,7 +58,7 @@ const wbgtLayer: LayerProps = {
 interface WbgtMapCoreProps {
   wbgtData: WbgtGeoJSON;
   currentTimeIndex: number;
-  displayMode?: "HOURLY" | "DAILY_MAX" | "DAILY_AVERAGE";
+  displayMode?: DisplayMode;
 }
 
 export function MapRenderer({
@@ -70,28 +71,11 @@ export function MapRenderer({
 
   const updateFeatureStates = useCallback(
     (map: MapLibreMap) => {
-      if (displayMode === "DAILY_MAX") {
-        wbgtData.features.forEach(({ properties }) => {
-          map.setFeatureState(
-            { source: "wbgt-points", id: properties.id },
-            { wbgt: properties.valueByDate[currentTimeIndex].wbgt ?? 0 }
-          );
-        });
-        return;
-      }
-      if (displayMode === "DAILY_AVERAGE") {
-        wbgtData.features.forEach(({ properties }) => {
-          map.setFeatureState(
-            { source: "wbgt-points", id: properties.id },
-            { wbgt: properties.valueByDateAverage[currentTimeIndex] ?? 0 }
-          );
-        });
-        return;
-      }
       wbgtData.features.forEach(({ properties }) => {
+        const wbgt = getWbgtValue(properties, currentTimeIndex, displayMode);
         map.setFeatureState(
           { source: "wbgt-points", id: properties.id },
-          { wbgt: properties.valueByDateTime[currentTimeIndex] ?? 0 }
+          { wbgt }
         );
       });
     },
@@ -115,12 +99,10 @@ export function MapRenderer({
       return;
     }
     const { name, id } = features[0].properties;
-    const featureState = map.getFeatureState({ source: "wbgt-points", id });
     setPopupInfo({
       longitude: event.lngLat.lng,
       latitude: event.lngLat.lat,
       name,
-      wbgt: featureState?.wbgt ?? 0,
       id,
     });
   }, []);
@@ -131,6 +113,14 @@ export function MapRenderer({
     if (!map) return;
     updateFeatureStates(map);
   }, [updateFeatureStates]);
+
+  // popupInfoのwbgt値を計算
+  const popupWbgt = useMemo(() => {
+    if (!popupInfo) return 0;
+    const feature = wbgtData.features.find(f => f.properties.id === popupInfo.id);
+    if (!feature) return 0;
+    return getWbgtValue(feature.properties, currentTimeIndex, displayMode);
+  }, [popupInfo, wbgtData, currentTimeIndex, displayMode]);
 
   return (
     <MapGL
@@ -155,6 +145,7 @@ export function MapRenderer({
       {popupInfo && (
         <WbgtPopup
           popupInfo={popupInfo}
+          wbgt={popupWbgt}
           onClose={() => setPopupInfo(null)}
           showDailyMax={
             displayMode === "DAILY_MAX" || displayMode === "DAILY_AVERAGE"

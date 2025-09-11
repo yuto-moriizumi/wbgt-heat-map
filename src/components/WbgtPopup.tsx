@@ -7,18 +7,19 @@ export interface PopupInfo {
   longitude: number;
   latitude: number;
   name: string;
-  wbgt: number;
   id: string;
 }
 
 interface WbgtPopupProps {
   popupInfo: PopupInfo;
+  wbgt: number;
   onClose: () => void;
   showDailyMax: boolean;
 }
 
 export function WbgtPopup({
   popupInfo,
+  wbgt,
   onClose,
   showDailyMax,
 }: WbgtPopupProps) {
@@ -49,7 +50,7 @@ export function WbgtPopup({
     [tMap]
   );
 
-  const translatedRiskLevel = getTranslatedRiskLevel(popupInfo.wbgt);
+  const translatedRiskLevel = getTranslatedRiskLevel(wbgt);
 
   return (
     <Popup
@@ -65,10 +66,10 @@ export function WbgtPopup({
         <p
           className="text-2xl font-bold"
           style={{
-            color: getWbgtLevelInfo(popupInfo.wbgt).color,
+            color: getWbgtLevelInfo(wbgt).color,
           }}
         >
-          {popupInfo.wbgt}
+          {wbgt}
         </p>
         <p className="text-sm text-black font-medium">{translatedRiskLevel}</p>
         {showDailyMax && (

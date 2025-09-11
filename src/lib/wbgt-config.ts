@@ -61,7 +61,7 @@ export const DISPLAY_MODES = {
   HOURLY: "HOURLY",
   DAILY_MAX: "DAILY_MAX",
   DAILY_AVERAGE: "DAILY_AVERAGE",
-};
+} as const;
 
 // マップストロークの色
 export const CIRCLE_STROKE_COLOR = "#ffffff";

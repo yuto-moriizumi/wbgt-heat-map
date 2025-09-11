@@ -8,8 +8,7 @@ interface DailyMaxData {
   wbgt: number;
 }
 
-
-interface WbgtProperties {
+export interface WbgtProperties {
   id: string;
   name: string;
   valueByDateTime: number[];
@@ -21,6 +20,10 @@ export type WbgtGeoJSON = GeoJSON.FeatureCollection<
   GeoJSON.Point,
   WbgtProperties
 >;
+
+import { DISPLAY_MODES } from "./wbgt-config";
+
+export type DisplayMode = keyof typeof DISPLAY_MODES;
 
 export interface WbgtDataResult {
   geojson: WbgtGeoJSON;

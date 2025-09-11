@@ -5,7 +5,7 @@ import { TimeSlider } from "./TimeSlider";
 import { MapRenderer } from "./MapRenderer";
 import { DisplayModeSelector } from "./DisplayModeSelector";
 import dayjs from "@/lib/dayjs";
-import { WbgtGeoJSON } from "@/lib/types";
+import { WbgtGeoJSON, DisplayMode } from "@/lib/types";
 
 interface WbgtMapProps {
   wbgtData: WbgtGeoJSON;
@@ -15,7 +15,7 @@ interface WbgtMapProps {
 export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [displayMode, setDisplayMode] = useState<'HOURLY' | 'DAILY_MAX' | 'DAILY_AVERAGE'>('HOURLY');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('HOURLY');
 
   // dates: timesから各日時を取り出したもの（日別の一意な日付）
   const dates = useMemo(() => {
@@ -60,7 +60,7 @@ export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
   }, []);
 
   // displayMode変更ハンドラー
-  const handleDisplayModeChange = useCallback((mode: 'HOURLY' | 'DAILY_MAX' | 'DAILY_AVERAGE') => {
+  const handleDisplayModeChange = useCallback((mode: DisplayMode) => {
     setDisplayMode(mode);
     setCurrentTimeIndex(0); // インデックスをリセット
   }, []);

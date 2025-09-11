@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { PageClientComponent } from "./PageClientComponent";
-import { WbgtGeoJSON } from "@/lib/types";
+import { WbgtGeoJSON, DisplayMode } from "@/lib/types";
 
 // Mock MapRenderer
 const mockMapRenderer = vi.fn();
@@ -10,7 +10,7 @@ vi.mock("./MapRenderer", () => ({
   MapRenderer: (props: {
     wbgtData: WbgtGeoJSON;
     currentTimeIndex: number;
-    displayMode?: 'HOURLY' | 'DAILY_MAX' | 'DAILY_AVERAGE';
+    displayMode?: DisplayMode;
   }) => {
     mockMapRenderer(props);
     return <div data-testid="mock-map-renderer" />;
