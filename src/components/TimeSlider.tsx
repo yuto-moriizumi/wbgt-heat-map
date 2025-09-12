@@ -2,7 +2,7 @@
 
 import React, { useEffect, useCallback } from "react";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import type { Dayjs } from "dayjs";
 import type { DisplayMode } from "../lib/types";
 
@@ -33,6 +33,7 @@ export function TimeSlider({
   displayMode,
 }: TimeSliderProps) {
   const t = useTranslations("TimeSlider");
+  const locale = useLocale();
 
   // 自動再生機能
   useEffect(() => {
@@ -76,12 +77,15 @@ export function TimeSlider({
 
   const formatTime = (timeObj: Dayjs): string => {
     try {
+      // ロケールに応じてdayjsのロケールを設定
+      const localizedTime = timeObj.locale(locale);
+      
       if (displayMode === 'DAILY_MAX' || displayMode === 'DAILY_AVERAGE') {
-        // 日次モードでは日付のみ表示
-        return timeObj.format('YYYY/MM/DD');
+        // 日次モードでは日付と曜日を表示
+        return localizedTime.format('YYYY/MM/DD (ddd)');
       } else {
-        // 通常モードではM/D HH:mm形式
-        return timeObj.format('M/D HH:mm');
+        // 通常モードではM/D HH:mm と曜日を表示
+        return localizedTime.format('M/D (ddd) HH:mm');
       }
     } catch {
       return timeObj.toString(); // エラー時はtoStringで返す

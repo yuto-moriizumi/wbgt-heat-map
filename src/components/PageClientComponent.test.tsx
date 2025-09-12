@@ -31,6 +31,7 @@ vi.mock("next-intl", () => ({
     };
     return translations[key] || key;
   },
+  useLocale: () => 'ja',
 }));
 
 const mockWbgtData: WbgtGeoJSON = {
