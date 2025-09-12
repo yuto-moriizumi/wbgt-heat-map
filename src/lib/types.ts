@@ -3,11 +3,32 @@ export interface TimeSeriesData {
   wbgt: number;
 }
 
+/**
+ * 観測地点のWBGTデータプロパティ
+ */
 export interface WbgtProperties {
+  /** 観測地点ID */
   id: string;
+  /** 観測地点名 */
   name: string;
+  /** 
+   * 時系列WBGT値の配列。
+   * timePointsの各インデックスに対応する時刻のWBGT値。
+   * HOURLYモードで使用される。
+   * 実績データと予測データ（翌日・翌々日）の両方を含む。
+   */
   valueByDateTime: number[];
+  /** 
+   * 日別最大WBGT値の配列。
+   * timePointsの各日に対応する日の最大WBGT値。
+   * DAILY_MAXモードで使用される。
+   */
   maxByDate: number[];
+  /** 
+   * 日別平均WBGT値の配列。
+   * timePointsの各日に対応する日の平均WBGT値。
+   * DAILY_AVERAGEモードで使用される。
+   */
   valueByDateAverage: number[];
 }
 

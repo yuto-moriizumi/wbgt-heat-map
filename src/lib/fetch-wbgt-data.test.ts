@@ -348,64 +348,6 @@ describe('fetchWbgtData', () => {
     }
   })
 
-  it('should handle PREDICTION_MAX mode data correctly', async () => {
-    const today = dayjs()
-    const tomorrow = today.add(1, 'day')
-    
-    // Setup mock with prediction data
-    server.use(
-      http.get('https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_:yearMonth.csv', ({ params }) => {
-        const { yearMonth } = params
-        const csvData = generateMockCsvData(yearMonth as string)
-        return HttpResponse.text(csvData)
-      }),
-      http.get('https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv', () => {
-        const predictionCsvData = generateMockPredictionCsvData()
-        return HttpResponse.text(predictionCsvData)
-      })
-    )
-
-    const result = await fetchWbgtData()
-    
-    // Check that features have prediction data that would not cause black markers
-    const features = result.geojson.features
-    expect(features.length).toBeGreaterThan(0)
-    
-    // Get a time point in the prediction range
-    const tomorrowNoon = tomorrow.hour(12).minute(0).second(0).millisecond(0)
-    const tomorrowNoonIso = tomorrowNoon.toISOString()
-    
-    console.log('Debug: looking for time point near:', tomorrowNoonIso)
-    console.log('Debug: available time points:', result.timePoints.slice(-10))
-    
-    // Find time point index for tomorrow noon (or closest)
-    const targetIndex = result.timePoints.findIndex(timePointIso => {
-      const timePoint = dayjs(timePointIso)
-      return timePoint.isSame(tomorrowNoon, 'hour') || 
-             (timePoint.isAfter(tomorrowNoon.subtract(1, 'hour')) && 
-              timePoint.isBefore(tomorrowNoon.add(1, 'hour')))
-    })
-    
-    console.log('Debug: target time index:', targetIndex)
-    
-    if (targetIndex >= 0) {
-      // Check values at this time point for all features
-      features.forEach((feature, featureIndex) => {
-        const wbgtValue = feature.properties.valueByDateTime[targetIndex]
-        console.log(`Debug: Feature ${featureIndex} (${feature.properties.name}) at prediction time: ${wbgtValue}`)
-        
-        // Values should be valid numbers (converted from the 310, 280, etc. format)
-        expect(typeof wbgtValue).toBe('number')
-        expect(wbgtValue).not.toBe(0) // Should not be 0 which might cause black markers
-        expect(!isNaN(wbgtValue)).toBe(true) // Should not be NaN
-        expect(wbgtValue).toBeGreaterThan(15) // Reasonable minimum temperature
-        expect(wbgtValue).toBeLessThan(50) // Reasonable maximum temperature
-      })
-    } else {
-      console.warn('Warning: No prediction time point found for tomorrow noon')
-    }
-  })
-
   it('should filter CSV data for last 14 days', async () => {
     const today = dayjs()
     const past14Days = today.subtract(14, 'days')

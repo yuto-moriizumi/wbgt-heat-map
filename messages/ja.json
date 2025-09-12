@@ -21,8 +21,7 @@
     "title": "表示モード",
     "hourly": "1時間ごと",
     "dailyMax": "日最高値",
-    "dailyAverage": "日中平均",
-    "predictionMax": "予測 (最高値)"
+    "dailyAverage": "日中平均"
   },
   "TimeSlider": {
     "timeSelection": "時刻選択",
