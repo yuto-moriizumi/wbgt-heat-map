@@ -61,6 +61,7 @@ export const DISPLAY_MODES = {
   HOURLY: "HOURLY",
   DAILY_MAX: "DAILY_MAX",
   DAILY_AVERAGE: "DAILY_AVERAGE",
+  PREDICTION_MAX: "PREDICTION_MAX",
 } as const;
 
 // マップストロークの色

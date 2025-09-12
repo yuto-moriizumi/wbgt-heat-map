@@ -38,6 +38,33 @@ const generateMockCsvData = (yearMonth: string) => {
   return mockCsvData
 }
 
+// Mock prediction CSV data generator - now generates realistic future dates
+const generateMockPredictionCsvData = () => {
+  const today = dayjs()
+  const tomorrow = today.add(1, 'day')
+  const dayAfter = today.add(2, 'day')
+  
+  // Generate forecast times for the next 2 days in YYYYMMDDHH format
+  const forecastTimes = [
+    tomorrow.hour(9).format('YYYYMMDDHH'),
+    tomorrow.hour(12).format('YYYYMMDDHH'),
+    tomorrow.hour(15).format('YYYYMMDDHH'),
+    tomorrow.hour(18).format('YYYYMMDDHH'),
+    dayAfter.hour(9).format('YYYYMMDDHH'),
+    dayAfter.hour(12).format('YYYYMMDDHH'),
+    dayAfter.hour(15).format('YYYYMMDDHH'),
+    dayAfter.hour(18).format('YYYYMMDDHH')
+  ]
+  
+  const mockPredictionData = [
+    `,,${forecastTimes.join(',')}`,
+    `11001,${today.format('YYYY/M/D')} 14:25,310,280,280,270,270,270,290,320`,
+    `11016,${today.format('YYYY/M/D')} 14:25,305,275,275,265,265,265,285,315`,
+    `12011,${today.format('YYYY/M/D')} 14:25,315,285,285,275,275,275,295,325`
+  ].join('\n')
+  return mockPredictionData
+}
+
 describe('fetchWbgtData', () => {
   beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -55,10 +82,17 @@ describe('fetchWbgtData', () => {
         const { yearMonth } = params
         const csvData = generateMockCsvData(yearMonth as string)
         return HttpResponse.text(csvData)
+      }),
+      http.get('https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv', () => {
+        const predictionCsvData = generateMockPredictionCsvData()
+        return HttpResponse.text(predictionCsvData)
       })
     )
 
     const result = await fetchWbgtData()
+
+    console.log('Debug: result.geojson.features.length =', result.geojson.features.length)
+    console.log('Debug: result.timePoints.length =', result.timePoints.length)
 
     expect(result.geojson.type).toBe('FeatureCollection')
     expect(result.geojson.features.length).toBeGreaterThan(0)
@@ -149,6 +183,10 @@ describe('fetchWbgtData', () => {
         const { yearMonth } = params
         const csvData = generateMockCsvData(yearMonth as string)
         return HttpResponse.text(csvData)
+      }),
+      http.get('https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv', () => {
+        const predictionCsvData = generateMockPredictionCsvData()
+        return HttpResponse.text(predictionCsvData)
       })
     )
 
@@ -203,6 +241,9 @@ describe('fetchWbgtData', () => {
     server.use(
       http.get('https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_*.csv', () => {
         return HttpResponse.error()
+      }),
+      http.get('https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv', () => {
+        return HttpResponse.error()
       })
     )
 
@@ -222,6 +263,9 @@ describe('fetchWbgtData', () => {
     server.use(
       http.get('https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_*', () => {
         return HttpResponse.text('invalid csv data')
+      }),
+      http.get('https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv', () => {
+        return HttpResponse.text('invalid prediction csv data')
       })
     )
 
@@ -237,21 +281,150 @@ describe('fetchWbgtData', () => {
     expect(console.error).toHaveBeenCalledWith('WBGTデータの取得に失敗:', expect.any(Error))
   })
 
+
+  it('should parse prediction CSV data correctly and include in final result', async () => {
+    const today = dayjs()
+    const tomorrow = today.add(1, 'day')
+    const dayAfter = today.add(2, 'day')
+    
+    // Setup mock with historical data and prediction data
+    server.use(
+      http.get('https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_:yearMonth.csv', ({ params }) => {
+        const { yearMonth } = params
+        const csvData = generateMockCsvData(yearMonth as string)
+        return HttpResponse.text(csvData)
+      }),
+      http.get('https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv', () => {
+        const predictionCsvData = generateMockPredictionCsvData()
+        return HttpResponse.text(predictionCsvData)
+      })
+    )
+
+    const result = await fetchWbgtData()
+
+    // Verify that result includes prediction data
+    expect(result.geojson.type).toBe('FeatureCollection')
+    expect(result.geojson.features.length).toBeGreaterThan(0)
+    expect(result.timePoints.length).toBeGreaterThan(0)
+    
+    // Check if prediction time points are included
+    const tomorrowStart = tomorrow.startOf('day')
+    const dayAfterEnd = dayAfter.endOf('day')
+    
+    const predictionTimePoints = result.timePoints.filter(timePointIso => {
+      const timePoint = dayjs(timePointIso)
+      return timePoint.isAfter(tomorrowStart) && timePoint.isBefore(dayAfterEnd)
+    })
+    
+    console.log('Debug: total timePoints =', result.timePoints.length)
+    console.log('Debug: prediction timePoints =', predictionTimePoints.length)
+    console.log('Debug: first 5 timePoints =', result.timePoints.slice(0, 5))
+    console.log('Debug: last 5 timePoints =', result.timePoints.slice(-5))
+    
+    // We should have prediction data for tomorrow and day after
+    expect(predictionTimePoints.length).toBeGreaterThan(0)
+    
+    // Check that first feature has prediction data
+    const firstFeature = result.geojson.features[0]
+    expect(firstFeature.properties.valueByDateTime.length).toBe(result.timePoints.length)
+    
+    // Find index of first prediction time point
+    const firstPredictionIndex = result.timePoints.findIndex(timePointIso => {
+      const timePoint = dayjs(timePointIso)
+      return timePoint.isAfter(tomorrowStart)
+    })
+    
+    if (firstPredictionIndex >= 0) {
+      const predictionValue = firstFeature.properties.valueByDateTime[firstPredictionIndex]
+      expect(typeof predictionValue).toBe('number')
+      expect(predictionValue).toBeGreaterThan(0) // Should have a valid temperature value
+      expect(predictionValue).toBeLessThan(50) // Reasonable temperature range
+      
+      console.log('Debug: first prediction value =', predictionValue)
+      console.log('Debug: corresponding time =', result.timePoints[firstPredictionIndex])
+    } else {
+      // If no prediction data found, fail the test
+      expect.fail('No prediction data found in time points')
+    }
+  })
+
+  it('should handle PREDICTION_MAX mode data correctly', async () => {
+    const today = dayjs()
+    const tomorrow = today.add(1, 'day')
+    
+    // Setup mock with prediction data
+    server.use(
+      http.get('https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_:yearMonth.csv', ({ params }) => {
+        const { yearMonth } = params
+        const csvData = generateMockCsvData(yearMonth as string)
+        return HttpResponse.text(csvData)
+      }),
+      http.get('https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv', () => {
+        const predictionCsvData = generateMockPredictionCsvData()
+        return HttpResponse.text(predictionCsvData)
+      })
+    )
+
+    const result = await fetchWbgtData()
+    
+    // Check that features have prediction data that would not cause black markers
+    const features = result.geojson.features
+    expect(features.length).toBeGreaterThan(0)
+    
+    // Get a time point in the prediction range
+    const tomorrowNoon = tomorrow.hour(12).minute(0).second(0).millisecond(0)
+    const tomorrowNoonIso = tomorrowNoon.toISOString()
+    
+    console.log('Debug: looking for time point near:', tomorrowNoonIso)
+    console.log('Debug: available time points:', result.timePoints.slice(-10))
+    
+    // Find time point index for tomorrow noon (or closest)
+    const targetIndex = result.timePoints.findIndex(timePointIso => {
+      const timePoint = dayjs(timePointIso)
+      return timePoint.isSame(tomorrowNoon, 'hour') || 
+             (timePoint.isAfter(tomorrowNoon.subtract(1, 'hour')) && 
+              timePoint.isBefore(tomorrowNoon.add(1, 'hour')))
+    })
+    
+    console.log('Debug: target time index:', targetIndex)
+    
+    if (targetIndex >= 0) {
+      // Check values at this time point for all features
+      features.forEach((feature, featureIndex) => {
+        const wbgtValue = feature.properties.valueByDateTime[targetIndex]
+        console.log(`Debug: Feature ${featureIndex} (${feature.properties.name}) at prediction time: ${wbgtValue}`)
+        
+        // Values should be valid numbers (converted from the 310, 280, etc. format)
+        expect(typeof wbgtValue).toBe('number')
+        expect(wbgtValue).not.toBe(0) // Should not be 0 which might cause black markers
+        expect(!isNaN(wbgtValue)).toBe(true) // Should not be NaN
+        expect(wbgtValue).toBeGreaterThan(15) // Reasonable minimum temperature
+        expect(wbgtValue).toBeLessThan(50) // Reasonable maximum temperature
+      })
+    } else {
+      console.warn('Warning: No prediction time point found for tomorrow noon')
+    }
+  })
+
   it('should filter CSV data for last 14 days', async () => {
     const today = dayjs()
     const past14Days = today.subtract(14, 'days')
     const past20Days = today.subtract(20, 'days')
     
     const mockCsvData = [
-      'Date,Time,11001',
-      `${past20Days.format('YYYY/M/D')},10:00,25.0`,
-      `${past14Days.format('YYYY/M/D')},15:00,26.0`,
-      `${today.format('YYYY/M/D')},17:00,28.5`
+      'Date,Time,11001,11016,12011',
+      `${past20Days.format('YYYY/M/D')},10:00,25.0,25.5,24.5`,
+      `${past14Days.format('YYYY/M/D')},15:00,26.0,26.5,25.5`,
+      `${today.format('YYYY/M/D')},17:00,28.5,29.0,28.0`
     ].join('\n')
 
     server.use(
-      http.get('https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_*', () => {
+      http.get('https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_:yearMonth.csv', () => {
         return HttpResponse.text(mockCsvData)
+      }),
+      http.get('https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv', () => {
+        const predictionCsvData = generateMockPredictionCsvData()
+        return HttpResponse.text(predictionCsvData)
       })
     )
 

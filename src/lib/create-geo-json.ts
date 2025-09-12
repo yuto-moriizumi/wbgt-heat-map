@@ -154,4 +154,91 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
   return { geojson, timePoints };
 }
 
-export { createGeoJSON as createWbgtGeoJSONFromCsv };
+
+function parsePredictionCsv(csvText: string): string {
+  const lines = csvText.trim().split(/\r?\n/).filter(line => line.trim() !== "");
+  if (lines.length < 2) {
+    return "";
+  }
+
+  const header = lines[0];
+  const dataRows = lines.slice(1);
+
+  // ヘッダーから日時情報を抽出
+  const headerColumns = header.split(",");
+  const dateTimeColumns = headerColumns.slice(2); // 最初の2列（空列、地点ID列）をスキップ
+
+  // 時系列データを整理: { "YYYY/M/D H:mm": { stationId: wbgtValue } }
+  const timeSeriesMap: { [timeKey: string]: { [stationId: string]: string } } = {};
+  const allStationIds = new Set<string>();
+
+  // 各データ行を処理
+  dataRows.forEach(row => {
+    const columns = row.split(",");
+    if (columns.length < 3) return; // 最低3列必要
+
+    const stationId = columns[0].trim();
+    if (!stationId) return; // 地点IDが空の場合はスキップ
+
+    allStationIds.add(stationId);
+
+    // 各時間帯のデータを処理
+    dateTimeColumns.forEach((dateTimeStr, index) => {
+      if (dateTimeStr && dateTimeStr.trim()) {
+        const wbgtValue = columns[index + 2]; // 対応するWBGT値
+
+        if (wbgtValue && wbgtValue.trim() && !isNaN(Number(wbgtValue.trim()))) {
+          // 日時文字列をパースしてフォーマット (YYYYMMDDHH形式)
+          const dateTime = dayjs(dateTimeStr.trim(), "YYYYMMDDHH");
+          if (dateTime.isValid()) {
+            const formattedDate = dateTime.format("YYYY/M/D"); // 実測値データと同じ形式
+            const formattedTime = dateTime.format("H:mm"); // 実測値データと同じ形式
+            const timeKey = `${formattedDate},${formattedTime}`;
+
+            if (!timeSeriesMap[timeKey]) {
+              timeSeriesMap[timeKey] = {};
+            }
+            // 予測データの値は10倍されているため、10で割って正しいWBGT値に変換
+            const originalValue = Number(wbgtValue.trim());
+            const normalizedValue = originalValue / 10;
+            console.log(`予測データ正規化: ${wbgtValue.trim()} -> ${originalValue} -> ${normalizedValue}`);
+            timeSeriesMap[timeKey][stationId] = normalizedValue.toString();
+          }
+        }
+      }
+    });
+  });
+
+  if (Object.keys(timeSeriesMap).length === 0) {
+    return "";
+  }
+
+  // 地点IDをソート
+  const sortedStationIds = Array.from(allStationIds).sort();
+
+  // 実測値データと同じ横持ち形式のCSVを作成
+  const csvRows: string[] = [];
+  
+  // ヘッダー行: Date,Time,StationID1,StationID2,...
+  csvRows.push(`Date,Time,${sortedStationIds.join(",")}`);
+
+  // データ行を時系列順にソート
+  const sortedTimeKeys = Object.keys(timeSeriesMap).sort((a, b) => {
+    const [dateA, timeA] = a.split(",");
+    const [dateB, timeB] = b.split(",");
+    const datetimeA = dayjs(`${dateA} ${timeA}`, "YYYY/M/D H:mm");
+    const datetimeB = dayjs(`${dateB} ${timeB}`, "YYYY/M/D H:mm");
+    return datetimeA.valueOf() - datetimeB.valueOf();
+  });
+
+  // データ行を作成
+  sortedTimeKeys.forEach(timeKey => {
+    const stationData = timeSeriesMap[timeKey];
+    const values = sortedStationIds.map(stationId => stationData[stationId] || "");
+    csvRows.push(`${timeKey},${values.join(",")}`);
+  });
+
+  return csvRows.join("\n");
+}
+
+export { createGeoJSON as createWbgtGeoJSONFromCsv, parsePredictionCsv };

@@ -96,4 +96,24 @@ function filterCsvDataByDateRange(csvText: string, days: number): string {
   return [header, ...filteredRows].join("\n");
 }
 
-export { fetchCombinedWbgtCsv, filterCsvDataByDateRange };
+
+async function fetchPredictionCsv(): Promise<string> {
+  const url = "https://www.wbgt.env.go.jp/prev15WG/dl/yohou_all.csv";
+  try {
+    console.log(`予測データ取得を試行: ${url}`);
+    const response = await fetch(url);
+    if (response.ok) {
+      const csvText = await response.text();
+      console.log(`予測データ取得成功: ${url}`);
+      return csvText;
+    } else {
+      console.log(`予測データ取得失敗 (${response.status}): ${url}`);
+      return "";
+    }
+  } catch (error) {
+    console.log(`予測データ接続エラー: ${url} - ${error}`);
+    return "";
+  }
+}
+
+export { fetchCombinedWbgtCsv, fetchPredictionCsv, filterCsvDataByDateRange };

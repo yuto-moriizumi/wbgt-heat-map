@@ -21,7 +21,8 @@
     "title": "Display Mode",
     "hourly": "Hourly",
     "dailyMax": "Daily Max",
-    "dailyAverage": "Daytime Average"
+    "dailyAverage": "Daytime Average",
+    "predictionMax": "Prediction (Max)"
   },
   "TimeSlider": {
     "timeSelection": "Time Selection",

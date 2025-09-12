@@ -24,6 +24,8 @@ export function DisplayModeSelector({
         return t("dailyMax");
       case 'DAILY_AVERAGE':
         return t("dailyAverage");
+      case 'PREDICTION_MAX':
+        return t("predictionMax");
       default:
         return mode;
     }
