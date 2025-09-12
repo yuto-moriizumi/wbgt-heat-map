@@ -83,8 +83,8 @@ function filterCsvDataByDateRange(csvText: string, days: number): string {
     const dateStr = columns[0].trim();
     if (!dateStr) return false;
 
-    // 日付をパース（YYYY-MM-DD形式を想定）
-    const rowDate = dayjs(dateStr, "YYYY-MM-DD");
+    // 日付をパース（YYYY/MM/DD形式を想定）
+    const rowDate = dayjs(dateStr);
     if (!rowDate.isValid()) return false;
 
     // 指定期間内かチェック

@@ -55,6 +55,33 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
     )
   ).map((time) => dayjs.tz(time, "Asia/Tokyo").toISOString());
 
+  // モードごとのtimePointsを生成
+  const hourlyTimePoints = timePoints;
+
+  // 日別データが利用可能な日付を抽出（午前9時以降のデータが存在する日）
+  const dailyTimePoints = Array.from(
+    new Set(
+      rowData
+        .filter((item) => {
+          const dateTime = dayjs.tz(item.normalizedTime, "Asia/Tokyo");
+          const hour = dateTime.hour();
+          return item.hasValidData && hour >= 9; // 午前9時以降のデータがある日
+        })
+        .map((item) =>
+          dayjs
+            .tz(item.normalizedTime, "Asia/Tokyo")
+            .startOf("day")
+            .hour(12)
+            .toISOString()
+        )
+    )
+  ).sort();
+
+  const modeTimePoints = {
+    hourlyTimePoints,
+    dailyTimePoints,
+  };
+
   // 各地点に対してデータを処理
   const features = stationIds
     .map((stationId, stationIndex) => {
@@ -108,8 +135,10 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
 
       // 日付ごとの平均値を計算
       const averageWbgtByDate: { [date: string]: number } = {};
-      const uniqueDates = Array.from(new Set(timeSeriesData.map(data => data.time.split(" ")[0])));
-      uniqueDates.forEach(date => {
+      const uniqueDates = Array.from(
+        new Set(timeSeriesData.map((data) => data.time.split(" ")[0]))
+      );
+      uniqueDates.forEach((date) => {
         averageWbgtByDate[date] = calculateDailyAverage(timeSeriesData, date);
       });
 
@@ -127,7 +156,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
         properties: {
           id: trimmedStationId,
           name: station.name,
-          valueByDateTime: timeSeriesData.map(data => data.wbgt),
+          valueByDateTime: timeSeriesData.map((data) => data.wbgt),
           maxByDate: maxByDate,
           valueByDateAverage: valueByDateAverage,
         },
@@ -151,12 +180,14 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
     features,
   };
 
-  return { geojson, timePoints };
+  return { geojson, ...modeTimePoints };
 }
 
-
 function parsePredictionCsv(csvText: string): string {
-  const lines = csvText.trim().split(/\r?\n/).filter(line => line.trim() !== "");
+  const lines = csvText
+    .trim()
+    .split(/\r?\n/)
+    .filter((line) => line.trim() !== "");
   if (lines.length < 2) {
     return "";
   }
@@ -169,11 +200,12 @@ function parsePredictionCsv(csvText: string): string {
   const dateTimeColumns = headerColumns.slice(2); // 最初の2列（空列、地点ID列）をスキップ
 
   // 時系列データを整理: { "YYYY/M/D H:mm": { stationId: wbgtValue } }
-  const timeSeriesMap: { [timeKey: string]: { [stationId: string]: string } } = {};
+  const timeSeriesMap: { [timeKey: string]: { [stationId: string]: string } } =
+    {};
   const allStationIds = new Set<string>();
 
   // 各データ行を処理
-  dataRows.forEach(row => {
+  dataRows.forEach((row) => {
     const columns = row.split(",");
     if (columns.length < 3) return; // 最低3列必要
 
@@ -201,7 +233,6 @@ function parsePredictionCsv(csvText: string): string {
             // 予測データの値は10倍されているため、10で割って正しいWBGT値に変換
             const originalValue = Number(wbgtValue.trim());
             const normalizedValue = originalValue / 10;
-            console.log(`予測データ正規化: ${wbgtValue.trim()} -> ${originalValue} -> ${normalizedValue}`);
             timeSeriesMap[timeKey][stationId] = normalizedValue.toString();
           }
         }
@@ -218,7 +249,7 @@ function parsePredictionCsv(csvText: string): string {
 
   // 実測値データと同じ横持ち形式のCSVを作成
   const csvRows: string[] = [];
-  
+
   // ヘッダー行: Date,Time,StationID1,StationID2,...
   csvRows.push(`Date,Time,${sortedStationIds.join(",")}`);
 
@@ -232,9 +263,11 @@ function parsePredictionCsv(csvText: string): string {
   });
 
   // データ行を作成
-  sortedTimeKeys.forEach(timeKey => {
+  sortedTimeKeys.forEach((timeKey) => {
     const stationData = timeSeriesMap[timeKey];
-    const values = sortedStationIds.map(stationId => stationData[stationId] || "");
+    const values = sortedStationIds.map(
+      (stationId) => stationData[stationId] || ""
+    );
     csvRows.push(`${timeKey},${values.join(",")}`);
   });
 

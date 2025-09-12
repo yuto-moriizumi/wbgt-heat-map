@@ -48,7 +48,8 @@ export async function fetchWbgtData(): Promise<WbgtDataResult> {
         type: "FeatureCollection",
         features: [],
       },
-      timePoints: [],
+      hourlyTimePoints: [],
+      dailyTimePoints: [],
     };
   }
 }

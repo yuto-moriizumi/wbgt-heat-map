@@ -17,14 +17,15 @@ export default async function Home({
     wbgtBundle = await fetchWbgtData();
   } catch (error) {
     console.error("Failed to fetch WBGT data:", error);
-    // エラー時は空のGeoJSONと空のtimePointsを返す
-    wbgtBundle = {
-      geojson: {
-        type: "FeatureCollection" as const,
-        features: [],
-      },
-      timePoints: [],
-    };
+     // エラー時は空のGeoJSONと空のtimePointsを返す
+     wbgtBundle = {
+       geojson: {
+         type: "FeatureCollection" as const,
+         features: [],
+       },
+       hourlyTimePoints: [],
+        dailyTimePoints: [],
+     };
   }
 
   const t = await getTranslations({ locale, namespace: "HomePage" });
@@ -42,10 +43,11 @@ export default async function Home({
           )}
         </div>
       </header>
-      <PageClientComponent
-        wbgtData={wbgtBundle.geojson}
-        times={wbgtBundle.timePoints}
-      />
+       <PageClientComponent
+         wbgtData={wbgtBundle.geojson}
+         hourlyTimePoints={wbgtBundle.hourlyTimePoints}
+          dailyTimePoints={wbgtBundle.dailyTimePoints}
+       />
       <Legend locale={locale} />
     </div>
   );

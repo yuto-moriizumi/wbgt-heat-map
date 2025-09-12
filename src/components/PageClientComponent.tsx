@@ -9,36 +9,30 @@ import { WbgtGeoJSON, DisplayMode } from "@/lib/types";
 
 interface WbgtMapProps {
   wbgtData: WbgtGeoJSON;
-  times: string[];
+  hourlyTimePoints: string[];
+  dailyTimePoints: string[];
 }
 
-export function PageClientComponent({ wbgtData, times }: WbgtMapProps) {
+export function PageClientComponent({ wbgtData, hourlyTimePoints, dailyTimePoints }: WbgtMapProps) {
   const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('HOURLY');
 
-  // dates: timesから各日時を取り出したもの（日別の一意な日付）
-  const dates = useMemo(() => {
-    const dateSet = new Set<string>();
-    times.forEach((timePoint) => {
-      const date = dayjs(timePoint).format("YYYY-MM-DD");
-      dateSet.add(date);
-    });
-    return Array.from(dateSet).sort();
-  }, [times]);
-
   // timePointsを計算値として定義
-  const timePoints = useMemo(() => {
-    if (displayMode === 'DAILY_MAX' || displayMode === 'DAILY_AVERAGE') {
-      return dates.map((date) => dayjs(date).startOf("day").toISOString());
+  const currentTimePoints = useMemo(() => {
+    switch (displayMode) {
+      case 'DAILY_AVERAGE':
+      case 'DAILY_MAX':
+        return dailyTimePoints;
+      default:
+        return hourlyTimePoints;
     }
-    return times;
-  }, [displayMode, dates, times]);
+  }, [displayMode, hourlyTimePoints, dailyTimePoints]);
 
   // ISO文字列をDayjsオブジェクトに復元
   const parsedTimePoints = useMemo(() => {
-    return timePoints.map((iso) => dayjs(iso).tz("Asia/Tokyo"));
-  }, [timePoints]);
+    return currentTimePoints.map((iso) => dayjs(iso).tz("Asia/Tokyo"));
+  }, [currentTimePoints]);
 
   const effectiveTimePoints = parsedTimePoints;
 

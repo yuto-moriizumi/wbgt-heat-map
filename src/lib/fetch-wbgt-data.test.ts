@@ -92,12 +92,20 @@ describe('fetchWbgtData', () => {
     const result = await fetchWbgtData()
 
     console.log('Debug: result.geojson.features.length =', result.geojson.features.length)
-    console.log('Debug: result.timePoints.length =', result.timePoints.length)
+    console.log('Debug: result.hourlyTimePoints.length =', result.hourlyTimePoints.length)
+    console.log('Debug: result.dailyTimePoints.length =', result.dailyTimePoints.length)
 
     expect(result.geojson.type).toBe('FeatureCollection')
     expect(result.geojson.features.length).toBeGreaterThan(0)
-    expect(result.timePoints.length).toBeGreaterThan(0)
-    expect(result.timePoints[0]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+    
+    // Mock data has 4 historical data points (2 days × 2 hours each) + 8 prediction data points (2 days × 4 hours each)
+    const expectedHistoricalDataPoints = 4
+    const expectedPredictionDataPoints = 8
+    const expectedTotalDataPoints = expectedHistoricalDataPoints + expectedPredictionDataPoints
+    
+    // 正確な長さ検証: テストデータでは正確に12個の時間ポイントが期待される
+    expect(result.hourlyTimePoints.length).toBe(expectedTotalDataPoints)
+    expect(result.hourlyTimePoints[0]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
     
     const firstFeature = result.geojson.features[0]
     expect(firstFeature.type).toBe('Feature')
@@ -133,46 +141,32 @@ describe('fetchWbgtData', () => {
       }
     })
     
-    // maxByDate detailed validation
+    // maxByDate detailed validation with exact expected values
     const maxByDate = firstFeature.properties.maxByDate
     expect(Array.isArray(maxByDate)).toBe(true)
-    expect(maxByDate.length).toBeGreaterThan(0)
     
-    // Check each maxByDate entry structure
-    maxByDate.forEach(wbgt => {
-      expect(typeof wbgt).toBe('number')
-    })
+    // Calculate expected maxByDate values based on mock data structure
+    // Reuse existing variables from valueByDateTime validation
+    const baseTemp = expectedBaseTemp
+    const variation = expectedVariation
     
-    // Verify that maxByDate contains daily maximum values
-    const dateTimeByDate: { [date: string]: number[] } = {}
-    result.timePoints.forEach((timePointIso, index) => {
-      const timePoint = dayjs(timePointIso)
-      const date = timePoint.format('YYYY/MM/DD')
-      if (!dateTimeByDate[date]) {
-        dateTimeByDate[date] = []
-      }
-      const wbgt = valueByDateTime[index] || 0
-      dateTimeByDate[date].push(wbgt)
-    })
+    // Expected values for each day based on mock CSV generation:
+    // Day 1: max(baseTemp, baseTemp - 0.7) = baseTemp
+    // Day 2: max(baseTemp + variation, baseTemp + variation - 0.7) = baseTemp + variation
+    const expectedMaxByDate = [
+      baseTemp, // Day 1 max
+      baseTemp + variation // Day 2 max
+    ]
     
-    // Check that each date in maxByDate has the maximum value from valueByDateTime
-    maxByDate.forEach((wbgt, index) => {
-      const date = Object.keys(dateTimeByDate)[index]
-      const valuesForDate = dateTimeByDate[date]
-      expect(valuesForDate).toBeDefined()
-      const maxValueForDate = Math.max(...valuesForDate)
-      expect(wbgt).toBe(maxValueForDate)
-    })
+    // Add prediction data max values (31.0, 27.0, 28.0, 27.0, 27.0, 27.0, 29.0, 32.0 for station 11001)
+    // Tomorrow: max(31.0, 28.0, 28.0, 27.0) = 31.0
+    // Day after: max(27.0, 27.0, 29.0, 32.0) = 32.0
+    expectedMaxByDate.push(31.0) // Tomorrow max
+    expectedMaxByDate.push(32.0) // Day after max
     
-    // Verify data consistency between valueByDateTime and maxByDate
-    const uniqueDatesFromTimePoints = new Set(result.timePoints.map(timePointIso => {
-      const timePoint = dayjs(timePointIso)
-      return timePoint.format('YYYY/MM/DD')
-    }))
-    const datesFromDaily = new Set(Object.keys(dateTimeByDate))
-    expect(uniqueDatesFromTimePoints.size).toBe(datesFromDaily.size)
-    uniqueDatesFromTimePoints.forEach(date => {
-      expect(datesFromDaily.has(date)).toBe(true)
+    expect(maxByDate.length).toBe(expectedMaxByDate.length)
+    expectedMaxByDate.forEach((expectedMax, index) => {
+      expect(maxByDate[index]).toBeCloseTo(expectedMax, 1)
     })
   })
 
@@ -200,7 +194,8 @@ describe('fetchWbgtData', () => {
     
     // Should have header + data from both months
     expect(header).toBe('Date,Time,11001,11016,12011')
-    expect(dataRows.length).toBeGreaterThan(4) // Should have data from both current and previous month
+    // Each month has 4 data rows (2 days × 2 hours each), so 8 total from both months
+    expect(dataRows.length).toBe(8)
     
     // Check that we have data from different months
     const dates = dataRows.map(row => row.split(',')[0])
@@ -254,11 +249,11 @@ describe('fetchWbgtData', () => {
         type: 'FeatureCollection',
         features: []
       },
-      timePoints: []
+      hourlyTimePoints: [],
+      dailyTimePoints: []
     })
     expect(console.error).toHaveBeenCalledWith('WBGTデータの取得に失敗:', expect.any(Error))
   })
-
   it('should return empty result when CSV processing throws error', async () => {
     server.use(
       http.get('https://www.wbgt.env.go.jp/est15WG/dl/wbgt_all_*', () => {
@@ -268,6 +263,7 @@ describe('fetchWbgtData', () => {
         return HttpResponse.text('invalid prediction csv data')
       })
     )
+    
 
     const result = await fetchWbgtData()
 
@@ -276,7 +272,8 @@ describe('fetchWbgtData', () => {
         type: 'FeatureCollection',
         features: []
       },
-      timePoints: []
+      hourlyTimePoints: [],
+      dailyTimePoints: []
     })
     expect(console.error).toHaveBeenCalledWith('WBGTデータの取得に失敗:', expect.any(Error))
   })
@@ -305,31 +302,31 @@ describe('fetchWbgtData', () => {
     // Verify that result includes prediction data
     expect(result.geojson.type).toBe('FeatureCollection')
     expect(result.geojson.features.length).toBeGreaterThan(0)
-    expect(result.timePoints.length).toBeGreaterThan(0)
+    expect(result.hourlyTimePoints.length).toBeGreaterThan(0)
     
     // Check if prediction time points are included
     const tomorrowStart = tomorrow.startOf('day')
     const dayAfterEnd = dayAfter.endOf('day')
     
-    const predictionTimePoints = result.timePoints.filter(timePointIso => {
+    const predictionTimePoints = result.hourlyTimePoints.filter(timePointIso => {
       const timePoint = dayjs(timePointIso)
       return timePoint.isAfter(tomorrowStart) && timePoint.isBefore(dayAfterEnd)
     })
     
-    console.log('Debug: total timePoints =', result.timePoints.length)
-    console.log('Debug: prediction timePoints =', predictionTimePoints.length)
-    console.log('Debug: first 5 timePoints =', result.timePoints.slice(0, 5))
-    console.log('Debug: last 5 timePoints =', result.timePoints.slice(-5))
+    console.log('Debug: total hourlyTimePoints =', result.hourlyTimePoints.length)
+    console.log('Debug: prediction hourlyTimePoints =', predictionTimePoints.length)
+    console.log('Debug: first 5 hourlyTimePoints =', result.hourlyTimePoints.slice(0, 5))
+    console.log('Debug: last 5 hourlyTimePoints =', result.hourlyTimePoints.slice(-5))
     
     // We should have prediction data for tomorrow and day after
     expect(predictionTimePoints.length).toBeGreaterThan(0)
     
     // Check that first feature has prediction data
     const firstFeature = result.geojson.features[0]
-    expect(firstFeature.properties.valueByDateTime.length).toBe(result.timePoints.length)
+    expect(firstFeature.properties.valueByDateTime.length).toBe(result.hourlyTimePoints.length)
     
     // Find index of first prediction time point
-    const firstPredictionIndex = result.timePoints.findIndex(timePointIso => {
+    const firstPredictionIndex = result.hourlyTimePoints.findIndex(timePointIso => {
       const timePoint = dayjs(timePointIso)
       return timePoint.isAfter(tomorrowStart)
     })
@@ -341,7 +338,7 @@ describe('fetchWbgtData', () => {
       expect(predictionValue).toBeLessThan(50) // Reasonable temperature range
       
       console.log('Debug: first prediction value =', predictionValue)
-      console.log('Debug: corresponding time =', result.timePoints[firstPredictionIndex])
+      console.log('Debug: corresponding time =', result.hourlyTimePoints[firstPredictionIndex])
     } else {
       // If no prediction data found, fail the test
       expect.fail('No prediction data found in time points')
@@ -373,6 +370,6 @@ describe('fetchWbgtData', () => {
     const result = await fetchWbgtData()
 
     expect(result.geojson.type).toBe('FeatureCollection')
-    expect(result.timePoints.length).toBeGreaterThanOrEqual(1)
+    expect(result.hourlyTimePoints.length).toBeGreaterThanOrEqual(1)
   })
 })

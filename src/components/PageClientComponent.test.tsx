@@ -38,12 +38,18 @@ const mockWbgtData: WbgtGeoJSON = {
   features: [],
 };
 
-const mockTimePoints = [
-  "2023-07-21T10:00:00Z",
-  "2023-07-21T11:00:00Z",
-  "2023-07-22T10:00:00Z",
-  "2023-07-22T11:00:00Z",
-];
+const mockTimePoints = {
+  hourly: [
+    "2023-07-21T10:00:00Z",
+    "2023-07-21T11:00:00Z",
+    "2023-07-22T10:00:00Z",
+    "2023-07-22T11:00:00Z",
+  ],
+  dailyAverage: [
+    "2023-07-21T00:00:00Z",
+    "2023-07-22T00:00:00Z",
+  ],
+};
 
 describe("PageClientComponent", () => {
   beforeEach(() => {
@@ -56,7 +62,11 @@ describe("PageClientComponent", () => {
 
   it("should render correctly and pass initial props to MapRenderer", () => {
     render(
-      <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
+      <PageClientComponent
+        wbgtData={mockWbgtData}
+        hourlyTimePoints={mockTimePoints.hourly}
+        dailyTimePoints={mockTimePoints.dailyAverage}
+      />
     );
 
     expect(screen.getByTestId("mock-map-renderer")).toBeInTheDocument();
@@ -70,7 +80,11 @@ describe("PageClientComponent", () => {
 
   it("should update props for MapRenderer when DisplayModeSelector is clicked", () => {
     render(
-      <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
+      <PageClientComponent
+        wbgtData={mockWbgtData}
+        hourlyTimePoints={mockTimePoints.hourly}
+        dailyTimePoints={mockTimePoints.dailyAverage}
+      />
     );
 
     const radio = screen.getByDisplayValue("DAILY_MAX");
@@ -85,7 +99,11 @@ describe("PageClientComponent", () => {
 
   it("should update currentTimeIndex when TimeSlider is changed", () => {
     render(
-      <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
+      <PageClientComponent
+        wbgtData={mockWbgtData}
+        hourlyTimePoints={mockTimePoints.hourly}
+        dailyTimePoints={mockTimePoints.dailyAverage}
+      />
     );
 
     const slider = screen.getByRole("slider");
@@ -100,7 +118,11 @@ describe("PageClientComponent", () => {
 
   it("should toggle isPlaying state when play/pause button is clicked", () => {
     render(
-      <PageClientComponent wbgtData={mockWbgtData} times={mockTimePoints} />
+      <PageClientComponent
+        wbgtData={mockWbgtData}
+        hourlyTimePoints={mockTimePoints.hourly}
+        dailyTimePoints={mockTimePoints.dailyAverage}
+      />
     );
 
     // Initial state: should show "再生" (Play) button
