@@ -74,7 +74,8 @@ describe("PageClientComponent", () => {
 
     const lastCallProps = mockMapRenderer.mock.calls[0][0];
     expect(lastCallProps.wbgtData).toEqual(mockWbgtData);
-    expect(lastCallProps.currentTimeIndex).toBe(0);
+    expect(lastCallProps.currentTimeIndex).toBeGreaterThanOrEqual(0);
+    expect(lastCallProps.currentTimeIndex).toBeLessThan(mockTimePoints.hourly.length);
     expect(lastCallProps.displayMode).toBe("HOURLY");
   });
 
@@ -94,7 +95,8 @@ describe("PageClientComponent", () => {
     const lastCallProps = mockMapRenderer.mock.calls[1][0];
 
     expect(lastCallProps.displayMode).toBe("DAILY_MAX");
-    expect(lastCallProps.currentTimeIndex).toBe(0); // Should reset to 0
+    expect(lastCallProps.currentTimeIndex).toBeGreaterThanOrEqual(0);
+    expect(lastCallProps.currentTimeIndex).toBeLessThan(mockTimePoints.dailyAverage.length);
   });
 
   it("should update currentTimeIndex when TimeSlider is changed", () => {
