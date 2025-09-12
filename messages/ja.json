@@ -1,6 +1,6 @@
 {
   "HomePage": {
-    "title": "全国暑さ指数(WBGT)マップ",
+    "title": "日本暑さマップ",
     "description": "全国の暑さ指数（WBGT）の実況と予測を地図上で確認できます。",
     "showDailyMax": "日の最高値を表示"
   },
