@@ -5,13 +5,12 @@ import { normalizeDateTime } from "./utils";
 import { calculateDailyAverage } from "./wbgt-calculator";
 
 function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
+
   // CSVをパース
   const records = parse(csvText, {
     skip_empty_lines: true,
     trim: true,
   });
-
-  console.log(`CSVレコード数: ${records.length}`);
 
   if (records.length < 2) {
     throw new Error("CSVデータが空または不正です");
@@ -20,8 +19,6 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
   // ヘッダー行から地点IDを取得
   const csvHeader = records[0];
   const stationIds = csvHeader.slice(2); // 最初の2列（Date, Time）をスキップ
-
-  console.log(`ヘッダーから地点ID数: ${stationIds.length}個`);
 
   // 行ごとの正規化済み時刻と、行に有効値があるかを事前計算
   const rowData = records
@@ -89,6 +86,7 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
 
       // 対応する地点情報を検索
       const station = stations.find((s) => s.id === trimmedStationId);
+
       if (!station) {
         console.log(`地点ID ${trimmedStationId} が地点マスタに見つかりません`);
         return null;
@@ -133,24 +131,16 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
         }
       });
 
-      // 日付ごとの平均値を計算
-      const averageWbgtByDate: { [date: string]: number } = {};
-      const uniqueDates = Array.from(
-        new Set(timeSeriesData.map((data) => data.time.split(" ")[0]))
+      // 日付ごとの平均値を効率的に計算
+      const valueByDateAverage = calculateDailyAverage(
+        timeSeriesData,
+        dailyTimePoints
       );
-      uniqueDates.forEach((date) => {
-        averageWbgtByDate[date] = calculateDailyAverage(timeSeriesData, date);
-      });
 
       // maxByDateを作成
       const maxByDate = Object.entries(maxWbgtByDate).map(([, wbgt]) => wbgt);
 
-      // valueByDateAverageを作成
-      const valueByDateAverage = Object.entries(averageWbgtByDate)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([, wbgt]) => wbgt);
-
-      return {
+      const result = {
         type: "Feature" as const,
         id: trimmedStationId,
         properties: {
@@ -168,12 +158,12 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
           ],
         },
       };
+
+      return result;
     })
     .filter(
       (feature): feature is NonNullable<typeof feature> => feature !== null
     );
-
-  console.log(`GeoJSONフィーチャー作成完了: ${features.length}地点`);
 
   const geojson: WbgtGeoJSON = {
     type: "FeatureCollection",

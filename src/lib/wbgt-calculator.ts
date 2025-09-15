@@ -1,37 +1,60 @@
 import { TimeSeriesData } from "./types";
 
 /**
- * 指定された日付の各観測点における日中平均WBGT値を計算します（9:00から17:00のデータを使用）
+ * 複数の日付の日中平均WBGT値を効率的に計算します（9:00から17:00のデータを使用）
  * @param timeSeriesData 時系列WBGTデータ
- * @param date 対象日付 (YYYY-MM-DD形式)
- * @returns 日中平均WBGT値、データがない場合は0
+ * @param dailyTimePoints 対象日付のISO文字列配列
+ * @returns dailyTimePointsの順序に対応した日中平均WBGT値の配列、データがない場合は0
  */
 export function calculateDailyAverage(
   timeSeriesData: TimeSeriesData[],
-  date: string
-): number {
-  const dayData = timeSeriesData.filter((data) => {
-    const dataDate = data.time.split(" ")[0]; // YYYY-MM-DD HH:mm から日付部分を抽出
-    return dataDate === date;
+  dailyTimePoints: string[]
+): number[] {
+  // dailyTimePointsをYYYY-MM-DD形式に変換してインデックスマップを作成
+  const dateToIndexMap = new Map<string, number>();
+  dailyTimePoints.forEach((timePoint, index) => {
+    const date = new Date(timePoint).toISOString().split("T")[0]; // YYYY-MM-DD
+    dateToIndexMap.set(date, index);
   });
 
-  if (dayData.length === 0) {
-    return 0; // データなし
-  }
+  // 日付ごとの集計データを格納
+  const dailyAggregation = new Map<string, { sum: number; count: number }>();
 
-  // 9:00から17:00までのデータをフィルタリング
-  const daytimeData = dayData.filter((data) => {
+  // 時系列データを一度だけループして集計
+  timeSeriesData.forEach((data) => {
+    const dataDate = data.time.split(" ")[0]; // YYYY-MM-DD HH:mm から日付部分を抽出
+
+    // 対象日付でない場合はスキップ
+    if (!dateToIndexMap.has(dataDate)) {
+      return;
+    }
+
+    // 9:00から17:00までの時間帯をチェック
     const timePart = data.time.split(" ")[1]; // HH:mm
     const hour = parseInt(timePart.split(":")[0], 10);
-    return hour >= 9 && hour <= 17;
+    if (hour < 9 || hour > 17) {
+      return;
+    }
+
+    // 有効なWBGT値のみを集計
+    if (data.wbgt > 0) {
+      const existing = dailyAggregation.get(dataDate) || { sum: 0, count: 0 };
+      existing.sum += data.wbgt;
+      existing.count += 1;
+      dailyAggregation.set(dataDate, existing);
+    }
   });
 
-  const validData = daytimeData.filter((data) => data.wbgt > 0); // 0はデータなしとして扱う
+  // dailyTimePointsの順序に従って平均値の配列を作成
+  return dailyTimePoints.map((timePoint) => {
+    const date = new Date(timePoint).toISOString().split("T")[0]; // YYYY-MM-DD
+    const aggregation = dailyAggregation.get(date);
 
-  if (validData.length === 0) {
-    return 0; // 有効データなし
-  }
+    if (!aggregation || aggregation.count === 0) {
+      return 0; // データがない場合は0
+    }
 
-  const sum = validData.reduce((acc, data) => acc + data.wbgt, 0);
-  return Math.round((sum / validData.length) * 10) / 10;
+    const average = aggregation.sum / aggregation.count;
+    return Math.round(average * 10) / 10;
+  });
 }

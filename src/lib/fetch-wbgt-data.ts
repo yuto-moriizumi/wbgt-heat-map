@@ -6,12 +6,14 @@ import { createWbgtGeoJSONFromCsv, parsePredictionCsv } from "./create-geo-json"
 import { WbgtDataResult } from "./types";
 
 export async function fetchWbgtData(): Promise<WbgtDataResult> {
+  
   try {
     // 地点マスタデータを取得
     const stations = await getStations();
 
     // 実測値データを取得
     const measuredCsvText = await fetchCombinedWbgtCsv();
+    
     const filteredMeasuredCsvText = filterCsvDataByDateRange(measuredCsvText, 14);
 
     // 予測データを取得
