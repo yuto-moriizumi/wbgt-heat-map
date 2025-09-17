@@ -22,7 +22,11 @@ export function calculateDailyAverage(
 
   // 時系列データを一度だけループして集計
   timeSeriesData.forEach((data) => {
-    const dataDate = data.time.split(" ")[0]; // YYYY-MM-DD HH:mm から日付部分を抽出
+    // 日付部分を抽出（YYYY/MM/DD HH:mm または YYYY-MM-DD HH:mm 形式に対応）
+    const datePart = data.time.split(" ")[0];
+    const dataDate = datePart.includes("/") 
+      ? datePart.replace(/\//g, "-") // YYYY/MM/DD を YYYY-MM-DD に変換
+      : datePart; // すでに YYYY-MM-DD 形式の場合はそのまま
 
     // 対象日付でない場合はスキップ
     if (!dateToIndexMap.has(dataDate)) {

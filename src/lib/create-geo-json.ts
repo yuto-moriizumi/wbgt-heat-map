@@ -125,7 +125,12 @@ function createGeoJSON(csvText: string, stations: Station[]): WbgtDataResult {
       // 日付ごとの最高値を計算
       const maxWbgtByDate: { [date: string]: number } = {};
       timeSeriesData.forEach((data) => {
-        const date = data.time.split(" ")[0]; // YYYY-MM-DD HH:mm から日付部分を抽出
+        // 日付部分を抽出（YYYY/MM/DD HH:mm 形式に対応）
+        const datePart = data.time.split(" ")[0];
+        const date = datePart.includes("/") 
+          ? datePart.replace(/\//g, "-") // YYYY/MM/DD を YYYY-MM-DD に変換
+          : datePart; // すでに YYYY-MM-DD 形式の場合はそのまま
+        
         if (!maxWbgtByDate[date] || data.wbgt > maxWbgtByDate[date]) {
           maxWbgtByDate[date] = data.wbgt;
         }
