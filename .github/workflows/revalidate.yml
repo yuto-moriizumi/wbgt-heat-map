@@ -1,0 +1,12 @@
+name: Revalidate Home Page
+
+on:
+  schedule:
+    - cron: '1 * * * *'  # Every hour at minute 1
+
+jobs:
+  revalidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Revalidate
+        run: curl -X POST https://wgbt-heat-map.vercel.app/api/revalidate
