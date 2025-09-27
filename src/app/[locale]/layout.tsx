@@ -13,6 +13,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export function generateStaticParams() {
+  return [{ locale: 'en' }, { locale: 'ja' }];
+}
+
 export const metadata: Metadata = {
   title: "日本暑さマップ",
   description:

@@ -17,15 +17,15 @@ export default async function Home({
     wbgtBundle = await fetchWbgtData();
   } catch (error) {
     console.error("Failed to fetch WBGT data:", error);
-     // エラー時は空のGeoJSONと空のtimePointsを返す
-     wbgtBundle = {
-       geojson: {
-         type: "FeatureCollection" as const,
-         features: [],
-       },
-       hourlyTimePoints: [],
-        dailyTimePoints: [],
-     };
+    // エラー時は空のGeoJSONと空のtimePointsを返す
+    wbgtBundle = {
+      geojson: {
+        type: "FeatureCollection" as const,
+        features: [],
+      },
+      hourlyTimePoints: [],
+      dailyTimePoints: [],
+    };
   }
 
   const t = await getTranslations({ locale, namespace: "HomePage" });
@@ -36,18 +36,22 @@ export default async function Home({
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-bold text-black">{t("title")}</h1>
           <p className="text-black text-sm">{t("description")}</p>
+          <p className="text-xs text-gray-500">
+            {t("lastGenerated")}
+            {new Date().toLocaleString(locale)}
+          </p>
           {wbgtBundle.geojson.features.length > 0 && (
             <p className="text-xs text-gray-700">
-              表示地点数: {wbgtBundle.geojson.features.length}地点
+              {t("stationCount", { count: wbgtBundle.geojson.features.length })}
             </p>
           )}
         </div>
       </header>
-       <PageClientComponent
-         wbgtData={wbgtBundle.geojson}
-         hourlyTimePoints={wbgtBundle.hourlyTimePoints}
-          dailyTimePoints={wbgtBundle.dailyTimePoints}
-       />
+      <PageClientComponent
+        wbgtData={wbgtBundle.geojson}
+        hourlyTimePoints={wbgtBundle.hourlyTimePoints}
+        dailyTimePoints={wbgtBundle.dailyTimePoints}
+      />
       <Legend locale={locale} />
     </div>
   );

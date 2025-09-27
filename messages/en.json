@@ -2,7 +2,9 @@
   "HomePage": {
     "title": "WBGT Heat Map",
     "description": "Nationwide Wet Bulb Globe Temperature (WBGT) Heat Map for Japan",
-    "showDailyMax": "Show daily max WBGT"
+    "showDailyMax": "Show daily max WBGT",
+    "lastGenerated": "Last Updated: ",
+    "stationCount": "Stations: {count}"
   },
   "WbgtMap": {
     "stationName": "Station Name",
