@@ -3,6 +3,7 @@ import { WbgtDataResult } from "@/lib/types";
 import { PageClientComponent } from "@/components/PageClientComponent";
 import { Legend } from "@/components/Legend";
 import { getTranslations } from "next-intl/server";
+import dayjs from "@/lib/dayjs";
 
 export default async function Home({
   params,
@@ -38,7 +39,7 @@ export default async function Home({
           <p className="text-black text-sm">{t("description")}</p>
           <p className="text-xs text-gray-500">
             {t("lastGenerated")}
-            {new Date().toLocaleString(locale)}
+            {dayjs().tz("Asia/Tokyo").format(locale === "ja" ? "YYYY年MM月DD日 HH:mm" : "YYYY/MM/DD HH:mm")}
           </p>
           {wbgtBundle.geojson.features.length > 0 && (
             <p className="text-xs text-gray-700">
